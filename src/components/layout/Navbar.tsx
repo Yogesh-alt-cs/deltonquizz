@@ -1,12 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gamepad2, Trophy, BookOpen, User, Menu, X } from "lucide-react";
+import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   const navItems = [
     { path: "/", label: "Home", icon: Gamepad2 },
@@ -57,13 +59,37 @@ export const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="outline" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-            <Button variant="gaming" size="sm">
-              Get Started
-            </Button>
+            <Link to="/join">
+              <Button variant="outline" size="sm">
+                <Users className="w-4 h-4 mr-2" />
+                Join Quiz
+              </Button>
+            </Link>
+            {!loading && (
+              user ? (
+                <>
+                  <Link to="/create">
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create
+                    </Button>
+                  </Link>
+                  <Link to="/profile">
+                    <Button variant="gaming" size="sm">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="gaming" size="sm">
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -105,13 +131,33 @@ export const Navbar = () => {
                   </Link>
                 );
               })}
+              <Link to="/join" onClick={() => setMobileMenuOpen(false)}>
+                <div className="px-4 py-3 rounded-lg flex items-center gap-3 text-muted-foreground">
+                  <Users className="w-5 h-5" />
+                  <span className="font-medium">Join Quiz</span>
+                </div>
+              </Link>
               <div className="flex gap-2 mt-4 px-4">
-                <Button variant="outline" size="sm" className="flex-1">
-                  Sign In
-                </Button>
-                <Button variant="gaming" size="sm" className="flex-1">
-                  Get Started
-                </Button>
+                {user ? (
+                  <>
+                    <Link to="/create" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Create Quiz
+                      </Button>
+                    </Link>
+                    <Link to="/profile" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="gaming" size="sm" className="w-full">
+                        Profile
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <Link to="/auth" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="gaming" size="sm" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </motion.div>

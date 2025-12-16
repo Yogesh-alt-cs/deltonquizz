@@ -101,16 +101,21 @@ const Index = () => {
                 </p>
 
                 <div className="flex flex-wrap gap-4">
-                  <Link to="/quiz/engineering">
+                  <Link to="/categories">
                     <Button variant="gaming" size="lg" className="group">
                       <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
                       Start Playing
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
-                  <Link to="/categories">
+                  <Link to="/join">
                     <Button variant="outline" size="lg">
-                      Browse Categories
+                      Join with Code
+                    </Button>
+                  </Link>
+                  <Link to="/create">
+                    <Button variant="outline" size="lg">
+                      Create Quiz
                     </Button>
                   </Link>
                 </div>
