@@ -1,445 +1,389 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Volume2, VolumeX, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { LivesDisplay, ScoreDisplay, TimerDisplay, StreakBadge } from "@/components/quiz/GameElements";
 import { QuestionCard, AnswerOption } from "@/components/quiz/QuizComponents";
 import { Confetti } from "@/components/effects/Particles";
-import { Link } from "react-router-dom";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Share2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
 
-// Sample quiz data
-const quizData = {
-  engineering: {
-    name: "Engineering Fundamentals",
-    questions: [
-      {
-        question: "What is the SI unit of electrical resistance?",
-        options: ["Ohm", "Ampere", "Volt", "Watt"],
-        correct: 0
-      },
-      {
-        question: "In object-oriented programming, what does 'inheritance' allow?",
-        options: ["Multiple returns", "Reuse of parent class properties", "Faster execution", "Better memory management"],
-        correct: 1
-      },
-      {
-        question: "What type of stress occurs when forces push together?",
-        options: ["Tensile stress", "Compressive stress", "Shear stress", "Bending stress"],
-        correct: 1
-      },
-      {
-        question: "Which data structure uses LIFO (Last In, First Out)?",
-        options: ["Queue", "Stack", "Array", "Linked List"],
-        correct: 1
-      },
-      {
-        question: "What is the purpose of a capacitor in an electrical circuit?",
-        options: ["Increase resistance", "Store electrical energy", "Convert AC to DC", "Generate magnetic field"],
-        correct: 1
-      },
-    ]
-  },
-  general: {
-    name: "General Knowledge",
-    questions: [
-      {
-        question: "What is the capital of Japan?",
-        options: ["Tokyo", "Beijing", "Seoul", "Bangkok"],
-        correct: 0
-      },
-      {
-        question: "Who painted the Mona Lisa?",
-        options: ["Michelangelo", "Leonardo da Vinci", "Raphael", "Donatello"],
-        correct: 1
-      },
-      {
-        question: "What is the largest planet in our solar system?",
-        options: ["Mars", "Saturn", "Jupiter", "Neptune"],
-        correct: 2
-      },
-      {
-        question: "In which year did World War II end?",
-        options: ["1943", "1944", "1945", "1946"],
-        correct: 2
-      },
-      {
-        question: "What is the chemical symbol for gold?",
-        options: ["Ag", "Au", "Fe", "Cu"],
-        correct: 1
-      },
-    ]
-  },
-  anime: {
-    name: "Anime & Manga",
-    questions: [
-      {
-        question: "What is the name of the main character in 'Naruto'?",
-        options: ["Sasuke Uchiha", "Naruto Uzumaki", "Kakashi Hatake", "Sakura Haruno"],
-        correct: 1
-      },
-      {
-        question: "In 'Attack on Titan', what are the giant humanoids called?",
-        options: ["Giants", "Titans", "Colossals", "Monsters"],
-        correct: 1
-      },
-      {
-        question: "Who is the creator of 'One Piece'?",
-        options: ["Masashi Kishimoto", "Eiichiro Oda", "Akira Toriyama", "Tite Kubo"],
-        correct: 1
-      },
-      {
-        question: "What is Goku's original Saiyan name in Dragon Ball Z?",
-        options: ["Vegeta", "Raditz", "Kakarot", "Broly"],
-        correct: 2
-      },
-      {
-        question: "In 'Death Note', what must you know to kill someone?",
-        options: ["Their location", "Their face and name", "Their blood type", "Their age"],
-        correct: 1
-      },
-    ]
-  }
-};
+interface Question {
+  id: string;
+  question_text: string;
+  options: string[];
+  correct_answer: number;
+  explanation: string | null;
+  points: number;
+}
 
 const QuizPage = () => {
-  const { categoryId } = useParams<{ categoryId: string }>();
+  const { quizId } = useParams();
   const navigate = useNavigate();
-  
-  const quiz = quizData[categoryId as keyof typeof quizData] || quizData.general;
-  
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const sounds = useSoundEffects();
+
+  const [quizTitle, setQuizTitle] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [lives, setLives] = useState(3);
+  const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(5);
   const [streak, setStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
   const [combo, setCombo] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
-  const [isPaused, setIsPaused] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [gameOver, setGameOver] = useState(false);
-  const [quizComplete, setQuizComplete] = useState(false);
+  const [gameState, setGameState] = useState<"loading" | "playing" | "gameOver" | "complete">("loading");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [answerResult, setAnswerResult] = useState<boolean | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const question = quiz.questions[currentQuestion];
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      if (!quizId) return;
+      try {
+        // Try to find quiz by ID first
+        const { data: quizData } = await supabase.from('quizzes').select('*').eq('id', quizId).maybeSingle();
+        
+        if (quizData) {
+          setQuizTitle(quizData.title);
+          const { data: questionsData } = await supabase.from('questions').select('*').eq('quiz_id', quizData.id).order('order_index');
+          if (questionsData && questionsData.length > 0) {
+            setQuestions(questionsData.map(q => ({ 
+              ...q, 
+              options: Array.isArray(q.options) ? q.options : JSON.parse(q.options as string) 
+            })));
+            setTimeLeft(quizData.time_limit_seconds || 30);
+            setGameState("playing");
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Generate quiz with AI for category
+        const categoryMap: Record<string, string> = {
+          'engineering': 'Engineering - Data Structures, Algorithms, Operating Systems, Networks',
+          'general': 'General Knowledge - History, Geography, Science, Culture',
+          'anime': 'Anime and Manga - Popular series like Naruto, One Piece, Attack on Titan, Dragon Ball',
+          'science': 'Science - Physics, Chemistry, Biology, Astronomy',
+          'history': 'World History - Ancient civilizations, World Wars, Modern history',
+          'technology': 'Technology - Computers, Programming, Internet, AI'
+        };
+        
+        const categoryName = categoryMap[quizId] || quizId;
+        toast({ title: 'Generating Quiz', description: 'AI is creating 30 questions for you...' });
+        
+        const response = await supabase.functions.invoke('generate-quiz', {
+          body: { topic: categoryName, difficulty: 'medium', numQuestions: 30, category: categoryName },
+        });
+
+        if (response.error) throw response.error;
+        
+        setQuizTitle(response.data.title || `${categoryName} Quiz`);
+        setQuestions(response.data.questions.map((q: any, i: number) => ({
+          id: `q-${i}`, 
+          question_text: q.question_text, 
+          options: q.options, 
+          correct_answer: q.correct_answer,
+          explanation: q.explanation, 
+          points: q.points || 10,
+        })));
+        setGameState("playing");
+      } catch (error: any) {
+        console.error('Error:', error);
+        toast({ title: 'Error', description: error.message || 'Failed to load quiz', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuiz();
+  }, [quizId, toast]);
 
   // Timer effect
   useEffect(() => {
-    if (isPaused || showResult || gameOver || quizComplete) return;
-    
+    if (gameState !== "playing" || isAnswered) return;
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleTimeout();
-          return 30;
-        }
+      setTimeLeft((prev) => {
+        if (prev <= 1) { handleTimeout(); return 0; }
+        if (prev <= 5 && soundEnabled) sounds.playCountdown();
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
-  }, [isPaused, showResult, gameOver, quizComplete, currentQuestion]);
+  }, [gameState, isAnswered, soundEnabled]);
 
   const handleTimeout = useCallback(() => {
-    setLives(prev => {
-      const newLives = prev - 1;
-      if (newLives <= 0) {
-        setGameOver(true);
-      }
-      return newLives;
-    });
+    if (isAnswered) return;
+    setIsAnswered(true);
+    setLives((prev) => prev - 1);
     setStreak(0);
     setCombo(1);
-    handleNextQuestion();
-  }, []);
+    if (soundEnabled) sounds.playIncorrect();
+    if (lives <= 1) { 
+      setGameState("gameOver"); 
+      if (soundEnabled) sounds.playGameOver(); 
+    } else {
+      setTimeout(goToNextQuestion, 2000);
+    }
+  }, [isAnswered, lives, soundEnabled, sounds]);
 
-  const handleAnswer = (index: number) => {
-    if (showResult || gameOver || quizComplete) return;
-    
+  const handleAnswerSelect = (index: number) => {
+    if (isAnswered || gameState !== "playing") return;
     setSelectedAnswer(index);
-    setShowResult(true);
-    
-    const isCorrect = index === question.correct;
-    setAnswerResult(isCorrect);
-    
+    setIsAnswered(true);
+    const currentQuestion = questions[currentQuestionIndex];
+    const isCorrect = index === currentQuestion.correct_answer;
+
     if (isCorrect) {
-      const basePoints = 100;
       const timeBonus = Math.floor(timeLeft * 2);
-      const comboMultiplier = Math.min(combo, 5);
-      const totalPoints = (basePoints + timeBonus) * comboMultiplier;
-      
-      setScore(prev => prev + totalPoints);
-      setStreak(prev => prev + 1);
-      setCombo(prev => Math.min(prev + 1, 5));
-      
-      if (streak >= 2) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 1000);
+      const streakBonus = streak >= 3 ? 50 : streak >= 5 ? 100 : 0;
+      setScore((prev) => prev + (currentQuestion.points * combo) + timeBonus + streakBonus);
+      setStreak((prev) => { 
+        const ns = prev + 1; 
+        if (ns > maxStreak) setMaxStreak(ns); 
+        return ns; 
+      });
+      setCombo((prev) => Math.min(prev + 0.5, 4));
+      if (soundEnabled) { 
+        sounds.playCorrect(); 
+        if (streak >= 2) sounds.playCombo(); 
       }
     } else {
-      setLives(prev => {
-        const newLives = prev - 1;
-        if (newLives <= 0) {
-          setTimeout(() => setGameOver(true), 1500);
-        }
-        return newLives;
-      });
+      setLives((prev) => prev - 1);
       setStreak(0);
       setCombo(1);
-    }
-
-    setTimeout(() => {
-      if (lives > 0 || isCorrect) {
-        handleNextQuestion();
+      if (soundEnabled) sounds.playIncorrect();
+      if (lives <= 1) { 
+        setGameState("gameOver"); 
+        if (soundEnabled) sounds.playGameOver(); 
+        return; 
       }
-    }, 1500);
+    }
+    setTimeout(goToNextQuestion, 1500);
   };
 
-  const handleNextQuestion = () => {
-    if (currentQuestion >= quiz.questions.length - 1) {
-      setQuizComplete(true);
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex >= questions.length - 1) {
+      setGameState("complete");
       setShowConfetti(true);
+      if (soundEnabled) sounds.playVictory();
     } else {
-      setCurrentQuestion(prev => prev + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedAnswer(null);
-      setShowResult(false);
-      setAnswerResult(null);
+      setIsAnswered(false);
       setTimeLeft(30);
     }
   };
 
-  const handleRestart = () => {
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setLives(3);
-    setScore(0);
-    setStreak(0);
+  const restartQuiz = () => {
+    setCurrentQuestionIndex(0); 
+    setSelectedAnswer(null); 
+    setIsAnswered(false);
+    setScore(0); 
+    setLives(5); 
+    setStreak(0); 
+    setMaxStreak(0); 
     setCombo(1);
-    setTimeLeft(30);
-    setGameOver(false);
-    setQuizComplete(false);
+    setTimeLeft(30); 
+    setGameState("playing"); 
     setShowConfetti(false);
-    setAnswerResult(null);
   };
 
-  if (gameOver) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <main className="pt-24 pb-12">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card p-8 text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.2 }}
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-destructive/20 flex items-center justify-center"
-              >
-                <span className="text-5xl">💔</span>
-              </motion.div>
-              
-              <h1 className="text-3xl font-bold mb-2">Game Over!</h1>
-              <p className="text-muted-foreground mb-8">You ran out of lives</p>
-              
-              <div className="glass-card p-6 mb-8">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-muted-foreground text-sm">Final Score</span>
-                    <p className="font-gaming text-3xl text-primary">{score.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-sm">Questions</span>
-                    <p className="font-gaming text-3xl text-foreground">{currentQuestion}/{quiz.questions.length}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-4 justify-center">
-                <Button variant="gaming" size="lg" onClick={handleRestart}>
-                  Try Again
-                </Button>
-                <Link to="/categories">
-                  <Button variant="outline" size="lg">
-                    Choose Another Quiz
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  // Social sharing functions
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareText = `I scored ${score} points on ${quizTitle} at Delton Quiz! 🎮 Can you beat my score?`;
 
-  if (quizComplete) {
-    const accuracy = Math.round((score / (quiz.questions.length * 100 * 5)) * 100);
-    
-    return (
-      <div className="min-h-screen">
-        <Confetti isActive={showConfetti} />
-        <Navbar />
-        <main className="pt-24 pb-12">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card p-8 text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.2 }}
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-success/20 flex items-center justify-center"
-              >
-                <span className="text-5xl">🏆</span>
-              </motion.div>
-              
-              <h1 className="text-3xl font-bold mb-2">Quiz Complete!</h1>
-              <p className="text-muted-foreground mb-8">Great job finishing {quiz.name}!</p>
-              
-              <div className="glass-card p-6 mb-8">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <span className="text-muted-foreground text-sm">Score</span>
-                    <p className="font-gaming text-2xl text-primary">{score.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-sm">Lives Left</span>
-                    <p className="font-gaming text-2xl text-destructive">{lives}/3</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-sm">Max Streak</span>
-                    <p className="font-gaming text-2xl text-warning">{streak}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-4 justify-center">
-                <Button variant="gaming" size="lg" onClick={handleRestart}>
-                  Play Again
-                </Button>
-                <Link to="/categories">
-                  <Button variant="outline" size="lg">
-                    More Quizzes
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </main>
+  const shareToTwitter = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, '_blank', 'width=550,height=420');
+  };
+
+  const shareToFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank', 'width=550,height=420');
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+    toast({ title: 'Copied!', description: 'Share link copied to clipboard' });
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Generating quiz questions...</p>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen">
-      <Confetti isActive={showConfetti} />
+    <div className="min-h-screen bg-background">
       <Navbar />
-      
-      <main className="pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-3xl">
-          {/* Top Bar */}
-          <div className="flex items-center justify-between mb-8">
-            <Link to="/categories">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Exit
-              </Button>
-            </Link>
-            
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-              >
-                {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsPaused(!isPaused)}
-              >
-                {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* Game Stats */}
-          <div className="glass-card p-4 mb-8">
-            <div className="flex items-center justify-between">
-              <LivesDisplay lives={lives} maxLives={3} />
-              <TimerDisplay timeLeft={timeLeft} totalTime={30} />
-              <ScoreDisplay score={score} combo={combo} />
-            </div>
-          </div>
-
-          {/* Streak Badge */}
-          <div className="flex justify-center mb-6">
-            <StreakBadge streak={streak} />
-          </div>
-
-          {/* Question */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQuestion}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="mb-8"
+      {showConfetti && <Confetti />}
+      <main className="container mx-auto px-4 pt-24 pb-12">
+        <AnimatePresence mode="wait">
+          {(gameState === "gameOver" || gameState === "complete") ? (
+            <motion.div 
+              key="results" 
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="max-w-lg mx-auto"
             >
-              <QuestionCard
-                question={question.question}
-                questionNumber={currentQuestion + 1}
-                totalQuestions={quiz.questions.length}
-                category={quiz.name}
-              />
-            </motion.div>
-          </AnimatePresence>
+              <div className="glass-card p-8 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                >
+                  {gameState === "complete" ? (
+                    <Trophy className="w-20 h-20 mx-auto text-warning mb-4" />
+                  ) : (
+                    <div className="w-20 h-20 mx-auto bg-destructive/20 rounded-full flex items-center justify-center mb-4">
+                      <span className="text-4xl">💔</span>
+                    </div>
+                  )}
+                </motion.div>
+                
+                <h2 className="text-3xl font-bold font-display text-foreground mb-2">
+                  {gameState === "complete" ? "Quiz Complete!" : "Game Over!"}
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  {gameState === "complete" ? "Amazing job!" : "Better luck next time!"}
+                </p>
+                
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-background/50 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-primary">{score}</div>
+                    <div className="text-sm text-muted-foreground">Score</div>
+                  </div>
+                  <div className="bg-background/50 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-success">
+                      {currentQuestionIndex + (gameState === "complete" ? 1 : 0)}/{questions.length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Questions</div>
+                  </div>
+                  <div className="bg-background/50 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-warning">{maxStreak}</div>
+                    <div className="text-sm text-muted-foreground">Best Streak</div>
+                  </div>
+                </div>
 
-          {/* Answer Options */}
-          <div className="space-y-4">
-            {question.options.map((option, index) => (
-              <AnswerOption
-                key={`${currentQuestion}-${index}`}
-                option={option}
-                index={index}
-                selected={selectedAnswer === index}
-                correct={showResult ? index === question.correct : null}
-                disabled={showResult || isPaused}
-                onClick={() => handleAnswer(index)}
-              />
-            ))}
-          </div>
+                {/* Social Sharing */}
+                <div className="mb-6">
+                  <p className="text-sm text-muted-foreground mb-3">Share your score</p>
+                  <div className="flex justify-center gap-3">
+                    <Button variant="outline" size="icon" onClick={shareToTwitter} title="Share on Twitter">
+                      <Twitter className="w-5 h-5" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={shareToFacebook} title="Share on Facebook">
+                      <Facebook className="w-5 h-5" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={copyLink} title="Copy link">
+                      <LinkIcon className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
 
-          {/* Pause Overlay */}
-          <AnimatePresence>
-            {isPaused && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-background/90 backdrop-blur-sm z-40 flex items-center justify-center"
-              >
-                <div className="glass-card p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Game Paused</h2>
-                  <Button variant="gaming" size="lg" onClick={() => setIsPaused(false)}>
-                    <Play className="w-5 h-5 mr-2" />
-                    Resume
+                <div className="flex flex-col gap-3">
+                  <Button variant="gaming" size="lg" onClick={restartQuiz}>
+                    <RotateCcw className="w-5 h-5 mr-2" />
+                    Play Again
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
+                    <Home className="w-5 h-5 mr-2" />
+                    Categories
                   </Button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-6">
+                <Button variant="ghost" onClick={() => navigate(-1)}>
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Exit
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => { 
+                    setSoundEnabled(!soundEnabled); 
+                    sounds.setSoundEnabled(!soundEnabled); 
+                  }}
+                >
+                  {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                </Button>
+              </div>
+              
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <LivesDisplay lives={lives} maxLives={5} />
+                <div className="flex items-center gap-4">
+                  {streak >= 2 && <StreakBadge streak={streak} />}
+                  <TimerDisplay timeLeft={timeLeft} maxTime={30} />
+                </div>
+                <ScoreDisplay score={score} combo={combo} />
+              </div>
+              
+              <div className="mb-8">
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                  <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+                  <span>{quizTitle}</span>
+                </div>
+                <div className="progress-bar h-2">
+                  <motion.div 
+                    className="progress-bar-fill" 
+                    animate={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }} 
+                  />
+                </div>
+              </div>
+              
+              {currentQuestion && (
+                <QuestionCard 
+                  question={currentQuestion.question_text} 
+                  questionNumber={currentQuestionIndex + 1} 
+                  totalQuestions={questions.length}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    {currentQuestion.options.map((option, index) => (
+                      <AnswerOption 
+                        key={index} 
+                        option={option} 
+                        index={index} 
+                        isSelected={selectedAnswer === index} 
+                        isCorrect={index === currentQuestion.correct_answer} 
+                        isAnswered={isAnswered} 
+                        onClick={() => handleAnswerSelect(index)} 
+                      />
+                    ))}
+                  </div>
+                  {isAnswered && currentQuestion.explanation && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      className="mt-6 p-4 rounded-lg bg-muted/50"
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Explanation:</strong> {currentQuestion.explanation}
+                      </p>
+                    </motion.div>
+                  )}
+                </QuestionCard>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
