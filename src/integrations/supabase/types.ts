@@ -14,10 +14,278 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      engineering_courses: {
+        Row: {
+          category_id: string | null
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category_id?: string | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category_id?: string | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engineering_courses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          highest_streak: number | null
+          id: string
+          total_quizzes_played: number | null
+          total_score: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          highest_streak?: number | null
+          id: string
+          total_quizzes_played?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          highest_streak?: number | null
+          id?: string
+          total_quizzes_played?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: number
+          created_at: string | null
+          explanation: string | null
+          id: string
+          options: Json
+          order_index: number | null
+          points: number | null
+          question_text: string
+          quiz_id: string
+          time_limit_seconds: number | null
+        }
+        Insert: {
+          correct_answer: number
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          options: Json
+          order_index?: number | null
+          points?: number | null
+          question_text: string
+          quiz_id: string
+          time_limit_seconds?: number | null
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          options?: Json
+          order_index?: number | null
+          points?: number | null
+          question_text?: string
+          quiz_id?: string
+          time_limit_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_sessions: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          current_question: number | null
+          id: string
+          lives_remaining: number | null
+          max_streak: number | null
+          quiz_id: string
+          score: number | null
+          time_taken_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_question?: number | null
+          id?: string
+          lives_remaining?: number | null
+          max_streak?: number | null
+          quiz_id: string
+          score?: number | null
+          time_taken_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_question?: number | null
+          id?: string
+          lives_remaining?: number | null
+          max_streak?: number | null
+          quiz_id?: string
+          score?: number | null
+          time_taken_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_sessions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          category_id: string | null
+          course_id: string | null
+          created_at: string | null
+          creator_id: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          is_public: boolean | null
+          join_code: string | null
+          time_limit_seconds: number | null
+          title: string
+          total_plays: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          course_id?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_public?: boolean | null
+          join_code?: string | null
+          time_limit_seconds?: number | null
+          title: string
+          total_plays?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          course_id?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          is_public?: boolean | null
+          join_code?: string | null
+          time_limit_seconds?: number | null
+          title?: string
+          total_plays?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quizzes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "engineering_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          avatar_url: string | null
+          highest_streak: number | null
+          id: string | null
+          rank: number | null
+          total_quizzes_played: number | null
+          total_score: number | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
