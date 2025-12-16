@@ -10,7 +10,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Share2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
 
 interface Question {
   id: string;
@@ -48,7 +48,6 @@ const QuizPage = () => {
     const fetchQuiz = async () => {
       if (!quizId) return;
       try {
-        // Try to find quiz by ID first
         const { data: quizData } = await supabase.from('quizzes').select('*').eq('id', quizId).maybeSingle();
         
         if (quizData) {
@@ -66,18 +65,23 @@ const QuizPage = () => {
           }
         }
 
-        // Generate quiz with AI for category
         const categoryMap: Record<string, string> = {
           'engineering': 'Engineering - Data Structures, Algorithms, Operating Systems, Networks',
           'general': 'General Knowledge - History, Geography, Science, Culture',
-          'anime': 'Anime and Manga - Popular series like Naruto, One Piece, Attack on Titan, Dragon Ball',
+          'anime': 'Anime and Manga - Popular series like Naruto, One Piece, Attack on Titan',
           'science': 'Science - Physics, Chemistry, Biology, Astronomy',
           'history': 'World History - Ancient civilizations, World Wars, Modern history',
-          'technology': 'Technology - Computers, Programming, Internet, AI'
+          'technology': 'Technology - Computers, Programming, Internet, AI',
+          'mathematics': 'Mathematics - Algebra, Calculus, Geometry, Statistics',
+          'programming': 'Programming - JavaScript, Python, Data Structures, Algorithms',
+          'sports': 'Sports - Football, Basketball, Olympics, Athletes',
+          'movies-tv': 'Movies and TV Shows - Cinema, Series, Actors, Directors',
+          'music': 'Music - Artists, Songs, Genres, Music Theory',
+          'geography': 'Geography - Countries, Capitals, Landmarks, Maps'
         };
         
         const categoryName = categoryMap[quizId] || quizId;
-        toast({ title: 'Generating Quiz', description: 'AI is creating 30 questions for you...' });
+        toast({ title: 'Generating Quiz', description: 'AI is creating 30 questions...' });
         
         const response = await supabase.functions.invoke('generate-quiz', {
           body: { topic: categoryName, difficulty: 'medium', numQuestions: 30, category: categoryName },
@@ -105,7 +109,6 @@ const QuizPage = () => {
     fetchQuiz();
   }, [quizId, toast]);
 
-  // Timer effect
   useEffect(() => {
     if (gameState !== "playing" || isAnswered) return;
     const timer = setInterval(() => {
@@ -195,18 +198,15 @@ const QuizPage = () => {
     setShowConfetti(false);
   };
 
-  // Social sharing functions
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const shareText = `I scored ${score} points on ${quizTitle} at Delton Quiz! 🎮 Can you beat my score?`;
 
   const shareToTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(url, '_blank', 'width=550,height=420');
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
   };
 
   const shareToFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank', 'width=550,height=420');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const copyLink = () => {
@@ -231,7 +231,7 @@ const QuizPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {showConfetti && <Confetti />}
+      <Confetti isActive={showConfetti} />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <AnimatePresence mode="wait">
           {(gameState === "gameOver" || gameState === "complete") ? (
@@ -242,11 +242,7 @@ const QuizPage = () => {
               className="max-w-lg mx-auto"
             >
               <div className="glass-card p-8 text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", bounce: 0.5 }}
-                >
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.5 }}>
                   {gameState === "complete" ? (
                     <Trophy className="w-20 h-20 mx-auto text-warning mb-4" />
                   ) : (
@@ -280,7 +276,6 @@ const QuizPage = () => {
                   </div>
                 </div>
 
-                {/* Social Sharing */}
                 <div className="mb-6">
                   <p className="text-sm text-muted-foreground mb-3">Share your score</p>
                   <div className="flex justify-center gap-3">
@@ -298,12 +293,10 @@ const QuizPage = () => {
 
                 <div className="flex flex-col gap-3">
                   <Button variant="gaming" size="lg" onClick={restartQuiz}>
-                    <RotateCcw className="w-5 h-5 mr-2" />
-                    Play Again
+                    <RotateCcw className="w-5 h-5 mr-2" />Play Again
                   </Button>
                   <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
-                    <Home className="w-5 h-5 mr-2" />
-                    Categories
+                    <Home className="w-5 h-5 mr-2" />Categories
                   </Button>
                 </div>
               </div>
@@ -312,17 +305,9 @@ const QuizPage = () => {
             <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="flex items-center justify-between mb-6">
                 <Button variant="ghost" onClick={() => navigate(-1)}>
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Exit
+                  <ArrowLeft className="w-5 h-5 mr-2" />Exit
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => { 
-                    setSoundEnabled(!soundEnabled); 
-                    sounds.setSoundEnabled(!soundEnabled); 
-                  }}
-                >
+                <Button variant="ghost" size="icon" onClick={() => { setSoundEnabled(!soundEnabled); sounds.setSoundEnabled(!soundEnabled); }}>
                   {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </Button>
               </div>
@@ -331,7 +316,7 @@ const QuizPage = () => {
                 <LivesDisplay lives={lives} maxLives={5} />
                 <div className="flex items-center gap-4">
                   {streak >= 2 && <StreakBadge streak={streak} />}
-                  <TimerDisplay timeLeft={timeLeft} maxTime={30} />
+                  <TimerDisplay timeLeft={timeLeft} totalTime={30} />
                 </div>
                 <ScoreDisplay score={score} combo={combo} />
               </div>
@@ -342,44 +327,37 @@ const QuizPage = () => {
                   <span>{quizTitle}</span>
                 </div>
                 <div className="progress-bar h-2">
-                  <motion.div 
-                    className="progress-bar-fill" 
-                    animate={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }} 
-                  />
+                  <motion.div className="progress-bar-fill" animate={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }} />
                 </div>
               </div>
               
               {currentQuestion && (
-                <QuestionCard 
-                  question={currentQuestion.question_text} 
-                  questionNumber={currentQuestionIndex + 1} 
-                  totalQuestions={questions.length}
-                >
+                <>
+                  <QuestionCard 
+                    question={currentQuestion.question_text} 
+                    questionNumber={currentQuestionIndex + 1} 
+                    totalQuestions={questions.length}
+                    category={quizTitle}
+                  />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {currentQuestion.options.map((option, index) => (
                       <AnswerOption 
                         key={index} 
                         option={option} 
                         index={index} 
-                        isSelected={selectedAnswer === index} 
-                        isCorrect={index === currentQuestion.correct_answer} 
-                        isAnswered={isAnswered} 
+                        selected={selectedAnswer === index} 
+                        correct={isAnswered ? index === currentQuestion.correct_answer : null} 
+                        disabled={isAnswered} 
                         onClick={() => handleAnswerSelect(index)} 
                       />
                     ))}
                   </div>
                   {isAnswered && currentQuestion.explanation && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }} 
-                      className="mt-6 p-4 rounded-lg bg-muted/50"
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Explanation:</strong> {currentQuestion.explanation}
-                      </p>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground"><strong>Explanation:</strong> {currentQuestion.explanation}</p>
                     </motion.div>
                   )}
-                </QuestionCard>
+                </>
               )}
             </motion.div>
           )}
