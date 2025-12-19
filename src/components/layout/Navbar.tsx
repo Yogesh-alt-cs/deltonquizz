@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn } from "lucide-react";
+import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,9 +13,9 @@ export const Navbar = () => {
   const navItems = [
     { path: "/", label: "Home", icon: Gamepad2 },
     { path: "/categories", label: "Categories", icon: BookOpen },
+    { path: "/multiplayer", label: "Multiplayer", icon: Users },
     { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   ];
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50">
       <div className="container mx-auto px-4">
@@ -68,6 +68,12 @@ export const Navbar = () => {
             {!loading && (
               user ? (
                 <>
+                  <Link to="/dashboard">
+                    <Button variant="outline" size="sm">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Button>
+                  </Link>
                   <Link to="/create">
                     <Button variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-2" />
