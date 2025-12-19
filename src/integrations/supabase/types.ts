@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -75,6 +108,154 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_answers: {
+        Row: {
+          answer_index: number | null
+          answered_at: string
+          id: string
+          is_correct: boolean
+          player_id: string
+          points_earned: number | null
+          question_index: number
+          room_id: string
+          time_taken_ms: number | null
+        }
+        Insert: {
+          answer_index?: number | null
+          answered_at?: string
+          id?: string
+          is_correct: boolean
+          player_id: string
+          points_earned?: number | null
+          question_index: number
+          room_id: string
+          time_taken_ms?: number | null
+        }
+        Update: {
+          answer_index?: number | null
+          answered_at?: string
+          id?: string
+          is_correct?: boolean
+          player_id?: string
+          points_earned?: number | null
+          question_index?: number
+          room_id?: string
+          time_taken_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_answers_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "game_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_answers_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_players: {
+        Row: {
+          avatar_url: string | null
+          current_streak: number | null
+          id: string
+          is_connected: boolean | null
+          is_ready: boolean | null
+          joined_at: string
+          last_answer_correct: boolean | null
+          room_id: string
+          score: number | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          current_streak?: number | null
+          id?: string
+          is_connected?: boolean | null
+          is_ready?: boolean | null
+          joined_at?: string
+          last_answer_correct?: boolean | null
+          room_id: string
+          score?: number | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          current_streak?: number | null
+          id?: string
+          is_connected?: boolean | null
+          is_ready?: boolean | null
+          joined_at?: string
+          last_answer_correct?: boolean | null
+          room_id?: string
+          score?: number | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_rooms: {
+        Row: {
+          created_at: string
+          current_question: number | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          max_players: number | null
+          quiz_id: string | null
+          room_code: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          current_question?: number | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          max_players?: number | null
+          quiz_id?: string | null
+          room_code: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          current_question?: number | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          max_players?: number | null
+          quiz_id?: string | null
+          room_code?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_rooms_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
             referencedColumns: ["id"]
           },
         ]
@@ -268,6 +449,35 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "engineering_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
             referencedColumns: ["id"]
           },
         ]

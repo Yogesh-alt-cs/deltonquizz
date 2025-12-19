@@ -12,6 +12,8 @@ import AuthPage from "./pages/AuthPage";
 import CreateQuizPage from "./pages/CreateQuizPage";
 import JoinQuizPage from "./pages/JoinQuizPage";
 import ProfilePage from "./pages/ProfilePage";
+import MultiplayerPage from "./pages/MultiplayerPage";
+import DashboardPage from "./pages/DashboardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/create" element={<CreateQuizPage />} />
             <Route path="/join" element={<JoinQuizPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/multiplayer" element={<MultiplayerPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
