@@ -249,15 +249,18 @@ const DashboardPage = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Button variant="gaming" size="lg" className="w-full" onClick={() => navigate('/categories')}>
             <Play className="w-5 h-5 mr-2" />Solo Quiz
           </Button>
           <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/multiplayer?create=true')}>
-            <Users className="w-5 h-5 mr-2" />Host Multiplayer
+            <Users className="w-5 h-5 mr-2" />Host Game
           </Button>
-          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/multiplayer')}>
-            <Users className="w-5 h-5 mr-2" />Join Game
+          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/tournament')}>
+            <Trophy className="w-5 h-5 mr-2" />Tournaments
+          </Button>
+          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/study')}>
+            <BookOpen className="w-5 h-5 mr-2" />Study Mode
           </Button>
         </div>
 
