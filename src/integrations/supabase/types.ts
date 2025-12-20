@@ -112,6 +112,104 @@ export type Database = {
           },
         ]
       }
+      flashcard_reviews: {
+        Row: {
+          flashcard_id: string
+          id: string
+          quality: number
+          reviewed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          flashcard_id: string
+          id?: string
+          quality: number
+          reviewed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          flashcard_id?: string
+          id?: string
+          quality?: number
+          reviewed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_reviews_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcards: {
+        Row: {
+          answer: string
+          category_id: string | null
+          created_at: string | null
+          difficulty: string | null
+          ease_factor: number | null
+          id: string
+          interval_days: number | null
+          last_reviewed_at: string | null
+          next_review_at: string | null
+          question: string
+          repetitions: number | null
+          source_quiz_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          category_id?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          ease_factor?: number | null
+          id?: string
+          interval_days?: number | null
+          last_reviewed_at?: string | null
+          next_review_at?: string | null
+          question: string
+          repetitions?: number | null
+          source_quiz_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          category_id?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          ease_factor?: number | null
+          id?: string
+          interval_days?: number | null
+          last_reviewed_at?: string | null
+          next_review_at?: string | null
+          question?: string
+          repetitions?: number | null
+          source_quiz_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcards_source_quiz_id_fkey"
+            columns: ["source_quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_answers: {
         Row: {
           answer_index: number | null
@@ -263,31 +361,49 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string | null
           highest_streak: number | null
           id: string
+          multiplayer_games: number | null
+          multiplayer_wins: number | null
+          theme_color: string | null
           total_quizzes_played: number | null
           total_score: number | null
+          tournaments_played: number | null
+          tournaments_won: number | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
           highest_streak?: number | null
           id: string
+          multiplayer_games?: number | null
+          multiplayer_wins?: number | null
+          theme_color?: string | null
           total_quizzes_played?: number | null
           total_score?: number | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
           highest_streak?: number | null
           id?: string
+          multiplayer_games?: number | null
+          multiplayer_wins?: number | null
+          theme_color?: string | null
           total_quizzes_played?: number | null
           total_score?: number | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -449,6 +565,204 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "engineering_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_matches: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          match_number: number
+          player1_id: string | null
+          player1_score: number | null
+          player2_id: string | null
+          player2_score: number | null
+          round: number
+          started_at: string | null
+          status: string | null
+          tournament_id: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          match_number: number
+          player1_id?: string | null
+          player1_score?: number | null
+          player2_id?: string | null
+          player2_score?: number | null
+          round: number
+          started_at?: string | null
+          status?: string | null
+          tournament_id: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          match_number?: number
+          player1_id?: string | null
+          player1_score?: number | null
+          player2_id?: string | null
+          player2_score?: number | null
+          round?: number
+          started_at?: string | null
+          status?: string | null
+          tournament_id?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_participants: {
+        Row: {
+          avatar_url: string | null
+          eliminated: boolean | null
+          eliminated_in_round: number | null
+          id: string
+          joined_at: string | null
+          matches_played: number | null
+          matches_won: number | null
+          seed: number | null
+          total_score: number | null
+          tournament_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          eliminated?: boolean | null
+          eliminated_in_round?: number | null
+          id?: string
+          joined_at?: string | null
+          matches_played?: number | null
+          matches_won?: number | null
+          seed?: number | null
+          total_score?: number | null
+          tournament_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          eliminated?: boolean | null
+          eliminated_in_round?: number | null
+          id?: string
+          joined_at?: string | null
+          matches_played?: number | null
+          matches_won?: number | null
+          seed?: number | null
+          total_score?: number | null
+          tournament_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          bracket_type: string | null
+          category_id: string | null
+          created_at: string | null
+          creator_id: string
+          current_round: number | null
+          description: string | null
+          difficulty: string | null
+          ended_at: string | null
+          id: string
+          max_participants: number | null
+          name: string
+          questions_per_match: number | null
+          registration_ends_at: string | null
+          started_at: string | null
+          status: string | null
+          time_per_question: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bracket_type?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          creator_id: string
+          current_round?: number | null
+          description?: string | null
+          difficulty?: string | null
+          ended_at?: string | null
+          id?: string
+          max_participants?: number | null
+          name: string
+          questions_per_match?: number | null
+          registration_ends_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          time_per_question?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bracket_type?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          creator_id?: string
+          current_round?: number | null
+          description?: string | null
+          difficulty?: string | null
+          ended_at?: string | null
+          id?: string
+          max_participants?: number | null
+          name?: string
+          questions_per_match?: number | null
+          registration_ends_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          time_per_question?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
