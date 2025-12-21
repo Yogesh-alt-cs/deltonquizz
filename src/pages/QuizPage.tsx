@@ -59,6 +59,7 @@ const QuizPage = () => {
               options: Array.isArray(q.options) ? q.options : JSON.parse(q.options as string) 
             })));
             setTimeLeft(quizData.time_limit_seconds || 30);
+            (window as any).__quizStartTime = Date.now();
             setGameState("playing");
             setLoading(false);
             return;
@@ -98,6 +99,7 @@ const QuizPage = () => {
           explanation: q.explanation, 
           points: q.points || 10,
         })));
+        (window as any).__quizStartTime = Date.now();
         setGameState("playing");
       } catch (error: any) {
         console.error('Error:', error);
@@ -130,7 +132,8 @@ const QuizPage = () => {
     if (soundEnabled) sounds.playIncorrect();
     if (lives <= 1) { 
       setGameState("gameOver"); 
-      if (soundEnabled) sounds.playGameOver(); 
+      if (soundEnabled) sounds.playGameOver();
+      saveSession(false);
     } else {
       setTimeout(goToNextQuestion, 2000);
     }
@@ -164,11 +167,31 @@ const QuizPage = () => {
       if (soundEnabled) sounds.playIncorrect();
       if (lives <= 1) { 
         setGameState("gameOver"); 
-        if (soundEnabled) sounds.playGameOver(); 
+        if (soundEnabled) sounds.playGameOver();
+        saveSession(false);
         return; 
       }
     }
     setTimeout(goToNextQuestion, 1500);
+  };
+
+  const saveSession = async (completed: boolean) => {
+    if (!user) return;
+    
+    try {
+      await supabase.from('quiz_sessions').insert({
+        user_id: user.id,
+        quiz_id: quizId || 'generated',
+        score,
+        max_streak: maxStreak,
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        current_question: currentQuestionIndex,
+        time_taken_seconds: Math.floor((Date.now() - (window as any).__quizStartTime) / 1000) || 0,
+      });
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
   };
 
   const goToNextQuestion = () => {
@@ -176,6 +199,7 @@ const QuizPage = () => {
       setGameState("complete");
       setShowConfetti(true);
       if (soundEnabled) sounds.playVictory();
+      saveSession(true);
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedAnswer(null);

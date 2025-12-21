@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Trophy, Star, Flame, Zap, Target, Award, Medal, Rocket, Users, Crown,
-  Play, Clock, TrendingUp, BookOpen, Loader2
+  Play, Clock, TrendingUp, BookOpen, Loader2, History
 } from "lucide-react";
 
 interface Achievement {
@@ -249,7 +249,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Button variant="gaming" size="lg" className="w-full" onClick={() => navigate('/categories')}>
             <Play className="w-5 h-5 mr-2" />Solo Quiz
           </Button>
@@ -261,6 +261,9 @@ const DashboardPage = () => {
           </Button>
           <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/study')}>
             <BookOpen className="w-5 h-5 mr-2" />Study Mode
+          </Button>
+          <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/history')}>
+            <History className="w-5 h-5 mr-2" />History
           </Button>
         </div>
 
