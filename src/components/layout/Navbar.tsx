@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard } from "lucide-react";
+import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard, Swords, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,8 @@ export const Navbar = () => {
     { path: "/", label: "Home", icon: Gamepad2 },
     { path: "/categories", label: "Categories", icon: BookOpen },
     { path: "/multiplayer", label: "Multiplayer", icon: Users },
+    { path: "/tournament", label: "Tournament", icon: Swords },
+    { path: "/study", label: "Study", icon: GraduationCap },
     { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   ];
   return (
