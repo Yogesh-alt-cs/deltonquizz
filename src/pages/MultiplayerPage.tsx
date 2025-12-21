@@ -46,6 +46,7 @@ const MultiplayerPage = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [gamePhase, setGamePhase] = useState<'lobby' | 'playing' | 'results' | 'waiting'>('lobby');
   const [waitingForNext, setWaitingForNext] = useState(false);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const currentPlayer = players.find(p => p.id === playerId);
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
@@ -107,14 +108,21 @@ const MultiplayerPage = () => {
 
   const generateQuestions = async () => {
     try {
+      const topics = ['Science', 'History', 'Geography', 'Literature', 'Technology', 'Sports', 'Music', 'Art'];
+      const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+      
       const response = await supabase.functions.invoke('generate-quiz', {
-        body: { topic: 'General Knowledge Trivia', difficulty: 'medium', numQuestions: 10 },
+        body: { 
+          topic: `${randomTopic} Trivia`, 
+          difficulty: difficulty, 
+          numQuestions: 10 
+        },
       });
 
       if (response.error) throw response.error;
 
       setQuestions(response.data.questions.map((q: any, i: number) => ({
-        id: `q-${i}`,
+        id: `q-${i}-${Date.now()}`,
         question_text: q.question_text,
         options: q.options,
         correct_answer: q.correct_answer,
@@ -339,6 +347,26 @@ const MultiplayerPage = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Difficulty Selection - Host Only */}
+              {isHost && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">Difficulty</h3>
+                  <div className="flex gap-2">
+                    {(['easy', 'medium', 'hard'] as const).map((diff) => (
+                      <Button
+                        key={diff}
+                        variant={difficulty === diff ? 'gaming' : 'outline'}
+                        size="sm"
+                        onClick={() => setDifficulty(diff)}
+                        className="flex-1 capitalize"
+                      >
+                        {diff}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={leaveRoom}>
