@@ -17,6 +17,7 @@ import DashboardPage from "./pages/DashboardPage";
 import TournamentPage from "./pages/TournamentPage";
 import StudyModePage from "./pages/StudyModePage";
 import QuizActivityPage from "./pages/QuizActivityPage";
+import QuizHistoryPage from "./pages/QuizHistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/quiz/:id" element={<QuizPage />} />
+            <Route path="/quiz/:quizId" element={<QuizPage />} />
             <Route path="/create" element={<CreateQuizPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/tournament/:id" element={<TournamentPage />} />
             <Route path="/study" element={<StudyModePage />} />
             <Route path="/quiz-activity/:quizId" element={<QuizActivityPage />} />
+            <Route path="/history" element={<QuizHistoryPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
