@@ -15,10 +15,6 @@ import {
   ChevronRight, ChevronLeft, Check, BookOpen, Target, Settings,
   Trash2, Edit2, Plus
 } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
 
 interface Category {
   id: string;
@@ -107,22 +103,37 @@ export default function CreateQuizPage() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
-  // Extract text from PDF using PDF.js
+  // Extract text from PDF using basic text extraction
   const extractPdfText = async (file: File): Promise<string> => {
+    // Read PDF as binary and extract visible text patterns
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n\n';
+    const bytes = new Uint8Array(arrayBuffer);
+    let text = '';
+    
+    // Convert bytes to string, extracting readable text
+    for (let i = 0; i < bytes.length; i++) {
+      const byte = bytes[i];
+      // Extract printable ASCII characters
+      if (byte >= 32 && byte <= 126) {
+        text += String.fromCharCode(byte);
+      } else if (byte === 10 || byte === 13) {
+        text += '\n';
+      }
     }
-
-    return fullText;
+    
+    // Clean up the extracted text
+    const cleanedText = text
+      .replace(/[^\w\s.,!?;:'"()-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/(\w)\s+(\w)/g, '$1 $2')
+      .trim();
+    
+    // If extraction is too short, return file name as topic hint
+    if (cleanedText.length < 100) {
+      return `Document: ${file.name.replace('.pdf', '')}. Please generate questions about this topic.`;
+    }
+    
+    return cleanedText;
   };
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
