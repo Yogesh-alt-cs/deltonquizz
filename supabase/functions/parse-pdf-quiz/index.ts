@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfText, numQuestions, difficulty } = await req.json();
+    const { pdfText, numQuestions, difficulty, topic } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -19,30 +19,44 @@ serve(async (req) => {
     }
 
     if (!pdfText || pdfText.trim().length < 50) {
-      throw new Error('PDF text is too short to generate meaningful questions');
+      throw new Error('Document content is too short to generate meaningful questions');
     }
 
-    // Clean and truncate text to avoid issues
-    const cleanedText = pdfText
-      .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+    // Clean and process text more intelligently
+    let cleanedText = pdfText
+      .replace(/[^\x20-\x7E\n\r\t\u00A0-\u00FF\u0100-\u017F]/g, ' ') // Keep more unicode chars
       .replace(/\s+/g, ' ')
-      .substring(0, 10000);
+      .replace(/\n{3,}/g, '\n\n') // Normalize line breaks
+      .trim();
 
-    const prompt = `Based on the following document content, create exactly ${numQuestions || 10} quiz questions.
+    // Take more content for better context (up to 15000 chars)
+    cleanedText = cleanedText.substring(0, 15000);
+
+    const topicInstruction = topic 
+      ? `Focus specifically on content related to: "${topic}". Prioritize questions about this topic.`
+      : 'Create questions covering the main concepts from the document.';
+
+    const prompt = `You are an expert quiz creator. Analyze this document and create exactly ${numQuestions || 10} high-quality multiple choice questions.
 
 DOCUMENT CONTENT:
 ${cleanedText}
 
-IMPORTANT REQUIREMENTS:
-1. Create exactly ${numQuestions || 10} multiple choice questions
-2. Each question MUST have exactly 4 options as an array of strings
-3. correct_answer MUST be an integer (0, 1, 2, or 3)
-4. Difficulty level: ${difficulty || 'medium'}
-5. Keep explanations brief (max 100 characters)
-6. Do NOT include special characters that break JSON
+INSTRUCTIONS:
+1. ${topicInstruction}
+2. Create exactly ${numQuestions || 10} questions at ${difficulty || 'medium'} difficulty level
+3. Each question MUST have exactly 4 distinct answer options
+4. Questions should test understanding, not just memorization
+5. Ensure questions are clear, unambiguous, and factually accurate based on the document
+6. correct_answer must be 0, 1, 2, or 3 (index of correct option)
+7. Include brief explanations for why the answer is correct
 
-Respond with ONLY this JSON structure (no markdown, no code blocks):
-{"title":"Quiz Title","description":"Brief description","questions":[{"question_text":"Question?","options":["A","B","C","D"],"correct_answer":0,"explanation":"Brief explanation","points":10}]}`;
+DIFFICULTY GUIDELINES:
+- Easy: Basic recall and comprehension questions
+- Medium: Application and analysis questions
+- Hard: Synthesis and evaluation questions requiring deep understanding
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{"title":"Descriptive Quiz Title","description":"Brief quiz description","questions":[{"question_text":"Question?","options":["A","B","C","D"],"correct_answer":0,"explanation":"Why this is correct","points":10}]}`;
 
     console.log('Generating quiz from PDF, cleaned text length:', cleanedText.length);
 
