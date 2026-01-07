@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.parse-pdf-quiz]
 verify_jwt = false
+
+[functions.get-recommendations]
+verify_jwt = false
