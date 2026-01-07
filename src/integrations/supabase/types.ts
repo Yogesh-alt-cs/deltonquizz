@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -76,6 +112,104 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      challenges: {
+        Row: {
+          challenged_id: string
+          challenged_score: number | null
+          challenged_time_seconds: number | null
+          challenger_id: string
+          challenger_score: number | null
+          challenger_time_seconds: number | null
+          completed_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          quiz_id: string | null
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          challenged_id: string
+          challenged_score?: number | null
+          challenged_time_seconds?: number | null
+          challenger_id: string
+          challenger_score?: number | null
+          challenger_time_seconds?: number | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          quiz_id?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          challenged_id?: string
+          challenged_score?: number | null
+          challenged_time_seconds?: number | null
+          challenger_id?: string
+          challenger_score?: number | null
+          challenger_time_seconds?: number | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          quiz_id?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_challenged_id_fkey"
+            columns: ["challenged_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_challenged_id_fkey"
+            columns: ["challenged_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_challenger_id_fkey"
+            columns: ["challenger_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_challenger_id_fkey"
+            columns: ["challenger_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       engineering_courses: {
         Row: {
@@ -206,6 +340,62 @@ export type Database = {
             columns: ["source_quiz_id"]
             isOneToOne: false
             referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -358,15 +548,77 @@ export type Database = {
           },
         ]
       }
+      learning_goals: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          target_accuracy: number | null
+          target_quizzes_per_week: number | null
+          target_topic: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_accuracy?: number | null
+          target_quizzes_per_week?: number | null
+          target_topic?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          target_accuracy?: number | null
+          target_quizzes_per_week?: number | null
+          target_topic?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_goals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string | null
+          daily_streak: number | null
           highest_streak: number | null
           id: string
+          last_activity_date: string | null
+          level: number | null
           multiplayer_games: number | null
           multiplayer_wins: number | null
+          privacy_setting: string | null
           theme_color: string | null
           total_quizzes_played: number | null
           total_score: number | null
@@ -374,15 +626,20 @@ export type Database = {
           tournaments_won: number | null
           updated_at: string | null
           username: string | null
+          xp: number | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          daily_streak?: number | null
           highest_streak?: number | null
           id: string
+          last_activity_date?: string | null
+          level?: number | null
           multiplayer_games?: number | null
           multiplayer_wins?: number | null
+          privacy_setting?: string | null
           theme_color?: string | null
           total_quizzes_played?: number | null
           total_score?: number | null
@@ -390,15 +647,20 @@ export type Database = {
           tournaments_won?: number | null
           updated_at?: string | null
           username?: string | null
+          xp?: number | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          daily_streak?: number | null
           highest_streak?: number | null
           id?: string
+          last_activity_date?: string | null
+          level?: number | null
           multiplayer_games?: number | null
           multiplayer_wins?: number | null
+          privacy_setting?: string | null
           theme_color?: string | null
           total_quizzes_played?: number | null
           total_score?: number | null
@@ -406,6 +668,7 @@ export type Database = {
           tournaments_won?: number | null
           updated_at?: string | null
           username?: string | null
+          xp?: number | null
         }
         Relationships: []
       }
@@ -796,6 +1059,107 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_topic_stats: {
+        Row: {
+          average_time_seconds: number | null
+          category_id: string | null
+          correct_answers: number | null
+          id: string
+          last_played_at: string | null
+          topic: string
+          total_questions: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_time_seconds?: number | null
+          category_id?: string | null
+          correct_answers?: number | null
+          id?: string
+          last_played_at?: string | null
+          topic: string
+          total_questions?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_time_seconds?: number | null
+          category_id?: string | null
+          correct_answers?: number | null
+          id?: string
+          last_played_at?: string | null
+          topic?: string
+          total_questions?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_topic_stats_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_topic_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_topic_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       leaderboard: {
@@ -812,7 +1176,16 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      award_xp: {
+        Args: { p_reason?: string; p_user_id: string; p_xp_amount: number }
+        Returns: {
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+        }[]
+      }
+      calculate_level: { Args: { xp_amount: number }; Returns: number }
+      update_daily_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
