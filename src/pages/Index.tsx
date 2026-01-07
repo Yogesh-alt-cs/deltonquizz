@@ -1,72 +1,73 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { 
-  Gamepad2, 
-  Trophy, 
-  Zap, 
-  Users, 
-  BookOpen, 
-  ArrowRight, 
-  Cpu, 
-  Globe, 
-  Sparkles,
-  Heart,
-  Star,
-  Play
-} from "lucide-react";
+import { Gamepad2, Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
-
-const categories = [
-  {
-    id: "engineering",
-    name: "Engineering",
-    description: "Test your knowledge of mechanical, electrical, and software engineering concepts",
-    icon: Cpu,
-    color: "#6366F1",
-    quizCount: 24,
-    difficulty: "Hard" as const
-  },
-  {
-    id: "general",
-    name: "General Knowledge",
-    description: "Challenge yourself with trivia from history, science, geography and more",
-    icon: Globe,
-    color: "#10B981",
-    quizCount: 56,
-    difficulty: "Medium" as const
-  },
-  {
-    id: "anime",
-    name: "Anime & Manga",
-    description: "How well do you know your favorite anime series and characters?",
-    icon: Sparkles,
-    color: "#EC4899",
-    quizCount: 32,
-    difficulty: "Easy" as const
-  },
-];
-
-const leaderboardData = [
-  { rank: 1, username: "QuizMaster", score: 48750, badge: "Pro" },
-  { rank: 2, username: "BrainStorm", score: 45200 },
-  { rank: 3, username: "TriviaKing", score: 42800 },
-  { rank: 4, username: "NerdAlert", score: 39500 },
-  { rank: 5, username: "SmartCookie", score: 37200 },
-];
-
-const stats = [
-  { label: "Active Players", value: "50K+", icon: Users },
-  { label: "Quizzes Taken", value: "2M+", icon: BookOpen },
-  { label: "Questions", value: "100K+", icon: Zap },
-];
-
+const categories = [{
+  id: "engineering",
+  name: "Engineering",
+  description: "Test your knowledge of mechanical, electrical, and software engineering concepts",
+  icon: Cpu,
+  color: "#6366F1",
+  quizCount: 24,
+  difficulty: "Hard" as const
+}, {
+  id: "general",
+  name: "General Knowledge",
+  description: "Challenge yourself with trivia from history, science, geography and more",
+  icon: Globe,
+  color: "#10B981",
+  quizCount: 56,
+  difficulty: "Medium" as const
+}, {
+  id: "anime",
+  name: "Anime & Manga",
+  description: "How well do you know your favorite anime series and characters?",
+  icon: Sparkles,
+  color: "#EC4899",
+  quizCount: 32,
+  difficulty: "Easy" as const
+}];
+const leaderboardData = [{
+  rank: 1,
+  username: "QuizMaster",
+  score: 48750,
+  badge: "Pro"
+}, {
+  rank: 2,
+  username: "BrainStorm",
+  score: 45200
+}, {
+  rank: 3,
+  username: "TriviaKing",
+  score: 42800
+}, {
+  rank: 4,
+  username: "NerdAlert",
+  score: 39500
+}, {
+  rank: 5,
+  username: "SmartCookie",
+  score: 37200
+}];
+const stats = [{
+  label: "Active Players",
+  value: "50K+",
+  icon: Users
+}, {
+  label: "Quizzes Taken",
+  value: "2M+",
+  icon: BookOpen
+}, {
+  label: "Questions",
+  value: "100K+",
+  icon: Zap
+}];
 const Index = () => {
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <FloatingParticles />
       <Navbar />
       
@@ -75,17 +76,24 @@ const Index = () => {
         <section className="relative py-20 lg:py-32 overflow-hidden">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <motion.div 
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mb-6"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
+              <motion.div initial={{
+              opacity: 0,
+              y: 30
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              duration: 0.6
+            }}>
+                <motion.div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mb-6" initial={{
+                opacity: 0,
+                scale: 0.8
+              }} animate={{
+                opacity: 1,
+                scale: 1
+              }} transition={{
+                delay: 0.2
+              }}>
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="text-sm text-primary font-medium">New: AI-powered quiz generation</span>
                 </motion.div>
@@ -122,14 +130,15 @@ const Index = () => {
 
                 {/* Stats */}
                 <div className="flex flex-wrap gap-8 mt-12">
-                  {stats.map((stat, index) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 + index * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
+                  {stats.map((stat, index) => <motion.div key={stat.label} initial={{
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  opacity: 1,
+                  y: 0
+                }} transition={{
+                  delay: 0.4 + index * 0.1
+                }} className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                         <stat.icon className="w-5 h-5 text-primary" />
                       </div>
@@ -137,25 +146,30 @@ const Index = () => {
                         <span className="block font-gaming text-xl text-foreground">{stat.value}</span>
                         <span className="text-sm text-muted-foreground">{stat.label}</span>
                       </div>
-                    </motion.div>
-                  ))}
+                    </motion.div>)}
                 </div>
               </motion.div>
 
               {/* Hero Visual */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="relative hidden lg:block"
-              >
+              <motion.div initial={{
+              opacity: 0,
+              scale: 0.9
+            }} animate={{
+              opacity: 1,
+              scale: 1
+            }} transition={{
+              duration: 0.6,
+              delay: 0.3
+            }} className="relative hidden lg:block">
                 <div className="relative">
                   {/* Main Card */}
-                  <motion.div 
-                    className="glass-card p-8 animate-float"
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  >
+                  <motion.div className="glass-card p-8 animate-float" animate={{
+                  y: [0, -10, 0]
+                }} transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}>
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Heart className="w-6 h-6 text-destructive fill-destructive" />
@@ -167,40 +181,39 @@ const Index = () => {
                     
                     <div className="space-y-4">
                       <div className="h-3 progress-bar">
-                        <div className="progress-bar-fill" style={{ width: "60%" }} />
+                        <div className="progress-bar-fill" style={{
+                        width: "60%"
+                      }} />
                       </div>
                       <p className="text-foreground font-medium">What is the capital of Japan?</p>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        {["Tokyo", "Beijing", "Seoul", "Bangkok"].map((city, i) => (
-                          <div 
-                            key={city}
-                            className={`p-3 rounded-lg border ${i === 0 ? "bg-success/20 border-success" : "bg-muted border-border"}`}
-                          >
+                        {["Tokyo", "Beijing", "Seoul", "Bangkok"].map((city, i) => <div key={city} className={`p-3 rounded-lg border ${i === 0 ? "bg-success/20 border-success" : "bg-muted border-border"}`}>
                             <span className="text-sm font-medium">{city}</span>
-                          </div>
-                        ))}
+                          </div>)}
                       </div>
                     </div>
                   </motion.div>
 
                   {/* Floating Elements */}
-                  <motion.div
-                    className="absolute -top-4 -right-4 glass-card p-3"
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 6, repeat: Infinity }}
-                  >
+                  <motion.div className="absolute -top-4 -right-4 glass-card p-3" animate={{
+                  rotate: [0, 5, -5, 0]
+                }} transition={{
+                  duration: 6,
+                  repeat: Infinity
+                }}>
                     <div className="flex items-center gap-2">
                       <Star className="w-5 h-5 text-warning fill-warning" />
                       <span className="font-gaming text-warning">5 STREAK</span>
                     </div>
                   </motion.div>
 
-                  <motion.div
-                    className="absolute -bottom-4 -left-4 glass-card p-3"
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
+                  <motion.div className="absolute -bottom-4 -left-4 glass-card p-3" animate={{
+                  scale: [1, 1.05, 1]
+                }} transition={{
+                  duration: 2,
+                  repeat: Infinity
+                }}>
                     <div className="flex items-center gap-2">
                       <Trophy className="w-5 h-5 text-warning" />
                       <span className="text-sm font-medium">Rank #24</span>
@@ -218,12 +231,15 @@ const Index = () => {
         {/* Categories Section */}
         <section className="py-20 relative">
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 20
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} viewport={{
+            once: true
+          }} className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Choose Your <span className="text-gradient">Challenge</span>
               </h2>
@@ -234,25 +250,28 @@ const Index = () => {
             </motion.div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((category, index) => (
-                <motion.div
-                  key={category.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
+              {categories.map((category, index) => <motion.div key={category.id} initial={{
+              opacity: 0,
+              y: 30
+            }} whileInView={{
+              opacity: 1,
+              y: 0
+            }} viewport={{
+              once: true
+            }} transition={{
+              delay: index * 0.1
+            }}>
                   <CategoryCard {...category} />
-                </motion.div>
-              ))}
+                </motion.div>)}
             </div>
 
-            <motion.div 
-              className="text-center mt-10"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-            >
+            <motion.div className="text-center mt-10" initial={{
+            opacity: 0
+          }} whileInView={{
+            opacity: 1
+          }} viewport={{
+            once: true
+          }}>
               <Link to="/categories">
                 <Button variant="outline" size="lg">
                   View All Categories
@@ -267,11 +286,15 @@ const Index = () => {
         <section className="py-20 relative">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-12 items-start">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-              >
+              <motion.div initial={{
+              opacity: 0,
+              x: -30
+            }} whileInView={{
+              opacity: 1,
+              x: 0
+            }} viewport={{
+              once: true
+            }}>
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">
                   Climb the <span className="text-gradient">Rankings</span>
                 </h2>
@@ -281,26 +304,22 @@ const Index = () => {
                 </p>
                 
                 <div className="space-y-4 mb-8">
-                  {[
-                    "Earn points for correct answers",
-                    "Build streaks for bonus multipliers",
-                    "Weekly tournaments with prizes",
-                    "Compete in category-specific rankings"
-                  ].map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
+                  {["Earn points for correct answers", "Build streaks for bonus multipliers", "Weekly tournaments with prizes", "Compete in category-specific rankings"].map((feature, index) => <motion.div key={index} initial={{
+                  opacity: 0,
+                  x: -20
+                }} whileInView={{
+                  opacity: 1,
+                  x: 0
+                }} viewport={{
+                  once: true
+                }} transition={{
+                  delay: index * 0.1
+                }} className="flex items-center gap-3">
                       <div className="w-6 h-6 rounded-full bg-success/20 flex items-center justify-center">
                         <Zap className="w-3 h-3 text-success" />
                       </div>
                       <span className="text-foreground">{feature}</span>
-                    </motion.div>
-                  ))}
+                    </motion.div>)}
                 </div>
 
                 <Link to="/leaderboard">
@@ -311,12 +330,15 @@ const Index = () => {
                 </Link>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="glass-card p-6"
-              >
+              <motion.div initial={{
+              opacity: 0,
+              x: 30
+            }} whileInView={{
+              opacity: 1,
+              x: 0
+            }} viewport={{
+              once: true
+            }} className="glass-card p-6">
                 <Leaderboard entries={leaderboardData} title="Top Players" />
               </motion.div>
             </div>
@@ -326,12 +348,15 @@ const Index = () => {
         {/* CTA Section */}
         <section className="py-20 relative">
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="glass-card p-12 text-center relative overflow-hidden"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 30
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} viewport={{
+            once: true
+          }} className="glass-card p-12 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 pointer-events-none" />
               
               <Gamepad2 className="w-16 h-16 mx-auto text-primary mb-6" />
@@ -368,15 +393,13 @@ const Index = () => {
                 </span>
               </div>
               
-              <p className="text-sm text-muted-foreground">
-                © 2024 Delton Quiz. Learning made fun.
+              <p className="text-sm text-muted-foreground text-justify">
+                © 2026 Delton Quiz. Learning made fun.
               </p>
             </div>
           </div>
         </footer>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
