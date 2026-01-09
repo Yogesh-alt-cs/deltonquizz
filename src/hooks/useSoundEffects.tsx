@@ -14,12 +14,18 @@ const SOUNDS = {
 
 export function useSoundEffects() {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const timeoutRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
   const soundEnabled = useRef(true);
 
-  const playSound = useCallback((soundName: keyof typeof SOUNDS) => {
+  const playSound = useCallback((soundName: keyof typeof SOUNDS, maxDuration?: number) => {
     if (!soundEnabled.current) return;
 
     try {
+      // Clear any existing timeout for this sound
+      if (timeoutRefs.current[soundName]) {
+        clearTimeout(timeoutRefs.current[soundName]);
+      }
+
       if (!audioRefs.current[soundName]) {
         audioRefs.current[soundName] = new Audio(SOUNDS[soundName]);
         audioRefs.current[soundName].volume = 0.5;
@@ -28,6 +34,14 @@ export function useSoundEffects() {
       const audio = audioRefs.current[soundName];
       audio.currentTime = 0;
       audio.play().catch(console.error);
+
+      // Stop the sound after maxDuration if specified
+      if (maxDuration) {
+        timeoutRefs.current[soundName] = setTimeout(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }, maxDuration * 1000);
+      }
     } catch (error) {
       console.error('Error playing sound:', error);
     }
@@ -47,10 +61,10 @@ export function useSoundEffects() {
     playIncorrect: () => playSound('incorrect'),
     playCombo: () => playSound('combo'),
     playLevelUp: () => playSound('levelUp'),
-    playGameOver: () => playSound('gameOver'),
+    playGameOver: () => playSound('gameOver', 3),
     playClick: () => playSound('click'),
     playCountdown: () => playSound('countdown'),
-    playVictory: () => playSound('victory'),
+    playVictory: () => playSound('victory', 3),
     toggleSound,
     setSoundEnabled,
     isSoundEnabled: () => soundEnabled.current,
