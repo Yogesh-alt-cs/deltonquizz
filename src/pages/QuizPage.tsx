@@ -10,7 +10,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp } from "lucide-react";
 
 interface Question {
   id: string;
@@ -19,6 +19,13 @@ interface Question {
   correct_answer: number;
   explanation: string | null;
   points: number;
+}
+
+interface XPResult {
+  earned: number;
+  breakdown: { label: string; amount: number }[];
+  newLevel: number;
+  leveledUp: boolean;
 }
 
 const QuizPage = () => {
@@ -43,6 +50,8 @@ const QuizPage = () => {
   const [gameState, setGameState] = useState<"loading" | "playing" | "gameOver" | "complete">("loading");
   const [showConfetti, setShowConfetti] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [xpResult, setXpResult] = useState<XPResult | null>(null);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -150,6 +159,7 @@ const QuizPage = () => {
       const timeBonus = Math.floor(timeLeft * 2);
       const streakBonus = streak >= 3 ? 50 : streak >= 5 ? 100 : 0;
       setScore((prev) => prev + (currentQuestion.points * combo) + timeBonus + streakBonus);
+      setCorrectAnswers((prev) => prev + 1);
       setStreak((prev) => { 
         const ns = prev + 1; 
         if (ns > maxStreak) setMaxStreak(ns); 
@@ -175,6 +185,86 @@ const QuizPage = () => {
     setTimeout(goToNextQuestion, 1500);
   };
 
+  const calculateAndAwardXP = async (completed: boolean): Promise<XPResult | null> => {
+    if (!user) return null;
+
+    const totalQuestions = questions.length;
+    const answeredQuestions = currentQuestionIndex + (completed ? 1 : 0);
+    const accuracy = answeredQuestions > 0 ? (correctAnswers / answeredQuestions) * 100 : 0;
+
+    // XP breakdown
+    const breakdown: { label: string; amount: number }[] = [];
+    
+    // Base XP for completion
+    const baseXP = completed ? 50 : 20;
+    breakdown.push({ label: "Quiz participation", amount: baseXP });
+
+    // Accuracy bonus
+    let accuracyBonus = 0;
+    if (accuracy >= 90) {
+      accuracyBonus = 50;
+      breakdown.push({ label: "Accuracy 90%+", amount: 50 });
+    } else if (accuracy >= 80) {
+      accuracyBonus = 30;
+      breakdown.push({ label: "Accuracy 80%+", amount: 30 });
+    } else if (accuracy >= 70) {
+      accuracyBonus = 15;
+      breakdown.push({ label: "Accuracy 70%+", amount: 15 });
+    }
+
+    // Streak bonus
+    let streakBonus = 0;
+    if (maxStreak >= 10) {
+      streakBonus = 40;
+      breakdown.push({ label: "10+ streak", amount: 40 });
+    } else if (maxStreak >= 5) {
+      streakBonus = 20;
+      breakdown.push({ label: "5+ streak", amount: 20 });
+    } else if (maxStreak >= 3) {
+      streakBonus = 10;
+      breakdown.push({ label: "3+ streak", amount: 10 });
+    }
+
+    // Score bonus (1 XP per 100 points)
+    const scoreBonus = Math.floor(score / 100);
+    if (scoreBonus > 0) {
+      breakdown.push({ label: "Score bonus", amount: scoreBonus });
+    }
+
+    // Perfect game bonus
+    if (completed && lives === 5 && accuracy === 100) {
+      breakdown.push({ label: "Perfect game!", amount: 100 });
+    }
+
+    const totalXP = breakdown.reduce((sum, item) => sum + item.amount, 0);
+
+    try {
+      // Award XP using the database function
+      const { data, error } = await supabase.rpc('award_xp', {
+        p_user_id: user.id,
+        p_xp_amount: totalXP,
+        p_reason: 'quiz_completion'
+      });
+
+      if (error) throw error;
+
+      const result = data?.[0];
+      
+      // Update daily streak
+      await supabase.rpc('update_daily_streak', { p_user_id: user.id });
+
+      return {
+        earned: totalXP,
+        breakdown,
+        newLevel: result?.new_level || 1,
+        leveledUp: result?.leveled_up || false
+      };
+    } catch (error) {
+      console.error('Error awarding XP:', error);
+      return { earned: totalXP, breakdown, newLevel: 1, leveledUp: false };
+    }
+  };
+
   const saveSession = async (completed: boolean) => {
     if (!user) return;
     
@@ -189,6 +279,15 @@ const QuizPage = () => {
         current_question: currentQuestionIndex,
         time_taken_seconds: Math.floor((Date.now() - (window as any).__quizStartTime) / 1000) || 0,
       });
+
+      // Award XP
+      const xp = await calculateAndAwardXP(completed);
+      if (xp) {
+        setXpResult(xp);
+        if (xp.leveledUp && soundEnabled) {
+          sounds.playLevelUp();
+        }
+      }
     } catch (error) {
       console.error('Error saving session:', error);
     }
@@ -220,10 +319,13 @@ const QuizPage = () => {
     setTimeLeft(30); 
     setGameState("playing"); 
     setShowConfetti(false);
+    setCorrectAnswers(0);
+    setXpResult(null);
+    (window as any).__quizStartTime = Date.now();
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = `I scored ${score} points on ${quizTitle} at Delton Quiz! 🎮 Can you beat my score?`;
+  const shareText = `I scored ${score} points on ${quizTitle} at Delton Quizz! 🎮 Can you beat my score?`;
 
   const shareToTwitter = () => {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
@@ -290,15 +392,67 @@ const QuizPage = () => {
                   </div>
                   <div className="bg-background/50 rounded-lg p-4">
                     <div className="text-2xl font-bold text-success">
-                      {currentQuestionIndex + (gameState === "complete" ? 1 : 0)}/{questions.length}
+                      {correctAnswers}/{questions.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Questions</div>
+                    <div className="text-sm text-muted-foreground">Correct</div>
                   </div>
                   <div className="bg-background/50 rounded-lg p-4">
                     <div className="text-2xl font-bold text-warning">{maxStreak}</div>
                     <div className="text-sm text-muted-foreground">Best Streak</div>
                   </div>
                 </div>
+
+                {/* XP Earned Section */}
+                {xpResult && user && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mb-6"
+                  >
+                    <div className="bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg p-4 border border-primary/30">
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        <span className="font-bold text-lg text-primary">+{xpResult.earned} XP</span>
+                      </div>
+                      
+                      {xpResult.leveledUp && (
+                        <motion.div
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="flex items-center justify-center gap-2 mb-3 text-warning"
+                        >
+                          <TrendingUp className="w-5 h-5" />
+                          <span className="font-bold">Level Up! Now Level {xpResult.newLevel}</span>
+                        </motion.div>
+                      )}
+                      
+                      <div className="space-y-1">
+                        {xpResult.breakdown.map((item, index) => (
+                          <motion.div
+                            key={item.label}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 + index * 0.1 }}
+                            className="flex justify-between text-sm"
+                          >
+                            <span className="text-muted-foreground">{item.label}</span>
+                            <span className="text-primary font-medium">+{item.amount}</span>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {!user && (
+                  <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border">
+                    <p className="text-sm text-muted-foreground mb-2">Sign in to earn XP and track your progress!</p>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                      Sign In
+                    </Button>
+                  </div>
+                )}
 
                 <div className="mb-6">
                   <p className="text-sm text-muted-foreground mb-3">Share your score</p>
