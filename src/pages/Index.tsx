@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Gamepad2, Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play } from "lucide-react";
+import { Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
+import logo from "@/assets/logo.png";
 const categories = [{
   id: "engineering",
   name: "Engineering",
@@ -359,7 +360,7 @@ const Index = () => {
           }} className="glass-card p-12 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 pointer-events-none" />
               
-              <Gamepad2 className="w-16 h-16 mx-auto text-primary mb-6" />
+              <img src={logo} alt="Delton Quizz" className="w-16 h-16 mx-auto rounded-xl mb-6" />
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Ready to Test Your Knowledge?
               </h2>
@@ -385,16 +386,14 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                  <Gamepad2 className="w-6 h-6 text-primary-foreground" />
-                </div>
+                <img src={logo} alt="Delton Quizz" className="w-10 h-10 rounded-xl" />
                 <span className="font-gaming text-lg">
-                  DELTON<span className="text-primary">QUIZ</span>
+                  DELTON<span className="text-primary">QUIZZ</span>
                 </span>
               </div>
               
               <p className="text-sm text-muted-foreground text-justify">
-                © 2026 Delton Quiz. Learning made fun.
+                © 2026 Delton Quizz. Learning made fun.
               </p>
             </div>
           </div>

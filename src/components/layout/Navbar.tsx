@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gamepad2, Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard, Swords, GraduationCap } from "lucide-react";
+import { Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard, Swords, GraduationCap, Home, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import logo from "@/assets/logo.png";
 
 export const Navbar = () => {
   const location = useLocation();
@@ -11,27 +12,28 @@ export const Navbar = () => {
   const { user, loading } = useAuth();
 
   const navItems = [
-    { path: "/", label: "Home", icon: Gamepad2 },
+    { path: "/", label: "Home", icon: Home },
     { path: "/categories", label: "Categories", icon: BookOpen },
     { path: "/multiplayer", label: "Multiplayer", icon: Users },
     { path: "/tournament", label: "Tournament", icon: Swords },
     { path: "/study", label: "Study", icon: GraduationCap },
     { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+    { path: "/friends", label: "Friends", icon: UserPlus },
   ];
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-3">
-            <motion.div 
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center"
+            <motion.img 
+              src={logo}
+              alt="Delton Quizz"
+              className="w-10 h-10 rounded-xl"
               whileHover={{ rotate: 15, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 400 }}
-            >
-              <Gamepad2 className="w-6 h-6 text-primary-foreground" />
-            </motion.div>
+            />
             <span className="font-gaming text-xl text-foreground tracking-wider">
-              DELTON<span className="text-primary">QUIZ</span>
+              DELTON<span className="text-primary">QUIZZ</span>
             </span>
           </Link>
 

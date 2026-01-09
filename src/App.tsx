@@ -19,6 +19,8 @@ import StudyModePage from "./pages/StudyModePage";
 import QuizActivityPage from "./pages/QuizActivityPage";
 import QuizHistoryPage from "./pages/QuizHistoryPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import FriendsPage from "./pages/FriendsPage";
+import RecommendationsPage from "./pages/RecommendationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,8 @@ const App = () => (
             <Route path="/quiz-activity/:quizId" element={<QuizActivityPage />} />
             <Route path="/history" element={<QuizHistoryPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/recommendations" element={<RecommendationsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
