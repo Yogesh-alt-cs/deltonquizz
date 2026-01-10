@@ -8,7 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
-import { User, Trophy, Zap, Target, LogOut, Save, ArrowLeft, Camera, Palette, Loader2 } from 'lucide-react';
+import { User, Trophy, Zap, Target, LogOut, Save, ArrowLeft, Camera, Palette, Loader2, Award, Flame } from 'lucide-react';
+import { XPProgress, LevelBadge } from '@/components/gamification/XPProgress';
+import { BadgeDisplay } from '@/components/gamification/BadgeDisplay';
 
 interface Profile {
   id: string;
@@ -23,6 +25,22 @@ interface Profile {
   multiplayer_games: number;
   tournaments_won: number;
   tournaments_played: number;
+  xp: number;
+  level: number;
+  daily_streak: number;
+}
+
+interface Badge {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  category: string;
+  requirement_type: string;
+  requirement_value: number;
+  xp_reward: number | null;
+  earned?: boolean;
+  earned_at?: string;
 }
 
 const THEME_COLORS = [
@@ -36,6 +54,7 @@ const THEME_COLORS = [
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [themeColor, setThemeColor] = useState('#8b5cf6');
@@ -53,6 +72,7 @@ export default function ProfilePage() {
       return;
     }
     fetchProfile();
+    fetchBadges();
   }, [user, navigate]);
 
   const fetchProfile = async () => {
@@ -67,12 +87,49 @@ export default function ProfilePage() {
     if (error) {
       console.error('Error fetching profile:', error);
     } else if (data) {
-      setProfile(data);
+      setProfile(data as Profile);
       setUsername(data.username || '');
       setBio(data.bio || '');
       setThemeColor(data.theme_color || '#8b5cf6');
     }
     setLoading(false);
+  };
+
+  const fetchBadges = async () => {
+    if (!user) return;
+
+    // Fetch all badges
+    const { data: allBadges, error: badgesError } = await supabase
+      .from('badges')
+      .select('*');
+
+    if (badgesError) {
+      console.error('Error fetching badges:', badgesError);
+      return;
+    }
+
+    // Fetch user's earned badges
+    const { data: userBadges, error: userBadgesError } = await supabase
+      .from('user_badges')
+      .select('badge_id, earned_at')
+      .eq('user_id', user.id);
+
+    if (userBadgesError) {
+      console.error('Error fetching user badges:', userBadgesError);
+      return;
+    }
+
+    // Merge badges with earned status
+    const earnedBadgeIds = new Set(userBadges?.map(ub => ub.badge_id) || []);
+    const earnedBadgesMap = new Map(userBadges?.map(ub => [ub.badge_id, ub.earned_at]) || []);
+    
+    const mergedBadges = (allBadges || []).map(badge => ({
+      ...badge,
+      earned: earnedBadgeIds.has(badge.id),
+      earned_at: earnedBadgesMap.get(badge.id) || undefined,
+    }));
+
+    setBadges(mergedBadges);
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,6 +201,9 @@ export default function ProfilePage() {
     navigate('/');
   };
 
+  const earnedBadges = badges.filter(b => b.earned);
+  const lockedBadges = badges.filter(b => !b.earned);
+
   if (!user) return null;
 
   return (
@@ -159,7 +219,7 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-3xl mx-auto"
         >
           <h1 className="text-3xl font-bold font-display text-foreground mb-8">Profile</h1>
 
@@ -169,6 +229,71 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* XP & Level Card */}
+              <Card className="glass-card p-6">
+                <div className="flex items-center gap-6 mb-4">
+                  <LevelBadge level={profile?.level || 1} size="lg" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-xl font-bold text-foreground">Level {profile?.level || 1}</h2>
+                      <div className="flex items-center gap-1 text-sm text-warning">
+                        <Flame className="w-4 h-4" />
+                        <span>{profile?.daily_streak || 0} day streak</span>
+                      </div>
+                    </div>
+                    <XPProgress 
+                      currentXP={profile?.xp || 0} 
+                      level={profile?.level || 1} 
+                      size="lg"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/50">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold font-gaming text-primary">{profile?.xp || 0}</div>
+                    <div className="text-xs text-muted-foreground">Total XP</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold font-gaming text-success">{earnedBadges.length}</div>
+                    <div className="text-xs text-muted-foreground">Badges Earned</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold font-gaming text-warning">{profile?.highest_streak || 0}</div>
+                    <div className="text-xs text-muted-foreground">Best Streak</div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Badge Collection */}
+              <Card className="glass-card p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-bold text-foreground">Badge Collection</h3>
+                  <span className="text-sm text-muted-foreground ml-auto">
+                    {earnedBadges.length}/{badges.length} unlocked
+                  </span>
+                </div>
+                
+                {earnedBadges.length > 0 ? (
+                  <div className="mb-4">
+                    <p className="text-sm text-muted-foreground mb-3">Earned Badges</p>
+                    <BadgeDisplay badges={earnedBadges} size="md" showLocked={false} />
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Award className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No badges earned yet. Complete quizzes to unlock badges!</p>
+                  </div>
+                )}
+                
+                {lockedBadges.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <p className="text-sm text-muted-foreground mb-3">Locked Badges ({lockedBadges.length})</p>
+                    <BadgeDisplay badges={lockedBadges} size="sm" showLocked={true} />
+                  </div>
+                )}
+              </Card>
+
               {/* Avatar & Profile Info */}
               <Card className="glass-card p-6">
                 <div className="flex items-start gap-6 mb-6">
