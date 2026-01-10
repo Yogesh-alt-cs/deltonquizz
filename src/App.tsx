@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CelebrationProvider } from "@/contexts/CelebrationContext";
 import { SplashScreen } from "@/components/SplashScreen";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
@@ -34,34 +35,36 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          {showSplash && (
-            <SplashScreen onComplete={() => setShowSplash(false)} />
-          )}
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/quiz/:quizId" element={<QuizPage />} />
-              <Route path="/create" element={<CreateQuizPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/join" element={<JoinQuizPage />} />
-              <Route path="/multiplayer" element={<MultiplayerPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/tournament" element={<TournamentPage />} />
-              <Route path="/tournament/:id" element={<TournamentPage />} />
-              <Route path="/study" element={<StudyModePage />} />
-              <Route path="/quiz-activity/:quizId" element={<QuizActivityPage />} />
-              <Route path="/history" element={<QuizHistoryPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/friends" element={<FriendsPage />} />
-              <Route path="/recommendations" element={<RecommendationsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <CelebrationProvider>
+            {showSplash && (
+              <SplashScreen onComplete={() => setShowSplash(false)} />
+            )}
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/quiz/:quizId" element={<QuizPage />} />
+                <Route path="/create" element={<CreateQuizPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/join" element={<JoinQuizPage />} />
+                <Route path="/multiplayer" element={<MultiplayerPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/tournament" element={<TournamentPage />} />
+                <Route path="/tournament/:id" element={<TournamentPage />} />
+                <Route path="/study" element={<StudyModePage />} />
+                <Route path="/quiz-activity/:quizId" element={<QuizActivityPage />} />
+                <Route path="/history" element={<QuizHistoryPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/friends" element={<FriendsPage />} />
+                <Route path="/recommendations" element={<RecommendationsPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </CelebrationProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

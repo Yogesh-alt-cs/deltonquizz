@@ -27,6 +27,17 @@ interface GamificationState {
   loading: boolean;
 }
 
+interface CelebrationCallbacks {
+  onLevelUp?: (level: number) => void;
+  onBadgeUnlock?: (badgeName: string, badgeIcon: string) => void;
+}
+
+let celebrationCallbacks: CelebrationCallbacks = {};
+
+export function setCelebrationCallbacks(callbacks: CelebrationCallbacks) {
+  celebrationCallbacks = callbacks;
+}
+
 export function useGamification() {
   const [state, setState] = useState<GamificationState>({
     xp: 0,
@@ -110,6 +121,9 @@ export function useGamification() {
         }));
 
         if (result.leveled_up) {
+          // Trigger celebration effect
+          celebrationCallbacks.onLevelUp?.(result.new_level);
+          
           toast({
             title: '🎉 Level Up!',
             description: `Congratulations! You've reached level ${result.new_level}!`,
@@ -208,6 +222,9 @@ export function useGamification() {
           if (!error) {
             newBadges.push(badge);
             await awardXP(badge.xp_reward, `Badge: ${badge.name}`);
+            
+            // Trigger celebration effect
+            celebrationCallbacks.onBadgeUnlock?.(badge.name, badge.icon);
             
             toast({
               title: `${badge.icon} Badge Unlocked!`,
