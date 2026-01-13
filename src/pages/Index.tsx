@@ -77,8 +77,12 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleCategorySelect = (categoryId: string, difficulty: string) => {
-    navigate(`/quiz/${categoryId}?difficulty=${difficulty}`);
+  const handleCategorySelect = (categoryId: string, difficulty: string, customTopic?: string) => {
+    const params = new URLSearchParams({ difficulty });
+    if (customTopic) {
+      params.set('topic', customTopic);
+    }
+    navigate(`/quiz/${categoryId}?${params.toString()}`);
   };
   return <div className="min-h-screen">
       <FloatingParticles />
