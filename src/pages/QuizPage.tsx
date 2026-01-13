@@ -36,9 +36,9 @@ const QuizPage = () => {
   const { user } = useAuth();
   const sounds = useSoundEffects();
   
-  // Get difficulty from URL params (from category sidebar)
+  // Get difficulty and custom topic from URL params (from category sidebar)
   const urlDifficulty = searchParams.get('difficulty') || 'medium';
-
+  const customTopic = searchParams.get('topic');
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,18 +96,24 @@ const QuizPage = () => {
           'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation'
         };
         
-        const categoryName = categoryMap[quizId] || quizId;
+        // Use custom topic if provided, otherwise use category mapping
+        const topicName = customTopic || categoryMap[quizId] || quizId;
         const difficulty = urlDifficulty;
         
-        toast({ title: 'Generating Quiz', description: `AI is creating 30 ${difficulty} questions...` });
+        toast({ 
+          title: 'Generating Quiz', 
+          description: customTopic 
+            ? `AI is creating 30 ${difficulty} questions about "${customTopic}"...` 
+            : `AI is creating 30 ${difficulty} questions...` 
+        });
         
         const response = await supabase.functions.invoke('generate-quiz', {
-          body: { topic: categoryName, difficulty, numQuestions: 30, category: categoryName },
+          body: { topic: topicName, difficulty, numQuestions: 30, category: customTopic || categoryMap[quizId] || quizId },
         });
 
         if (response.error) throw response.error;
         
-        setQuizTitle(response.data.title || `${categoryName} Quiz`);
+        setQuizTitle(response.data.title || `${topicName} Quiz`);
         setQuestions(response.data.questions.map((q: any, i: number) => ({
           id: `q-${i}`, 
           question_text: q.question_text, 
