@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
@@ -10,8 +10,8 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
 import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp } from "lucide-react";
-
 interface Question {
   id: string;
   question_text: string;
@@ -30,10 +30,14 @@ interface XPResult {
 
 const QuizPage = () => {
   const { quizId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const sounds = useSoundEffects();
+  
+  // Get difficulty from URL params (from category sidebar)
+  const urlDifficulty = searchParams.get('difficulty') || 'medium';
 
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -87,14 +91,18 @@ const QuizPage = () => {
           'sports': 'Sports - Football, Basketball, Olympics, Athletes',
           'movies-tv': 'Movies and TV Shows - Cinema, Series, Actors, Directors',
           'music': 'Music - Artists, Songs, Genres, Music Theory',
-          'geography': 'Geography - Countries, Capitals, Landmarks, Maps'
+          'geography': 'Geography - Countries, Capitals, Landmarks, Maps',
+          'biology': 'Medical Biology - NEET style questions, Anatomy, Physiology, Pathology, Pharmacology, Clinical scenario MCQs',
+          'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation'
         };
         
         const categoryName = categoryMap[quizId] || quizId;
-        toast({ title: 'Generating Quiz', description: 'AI is creating 30 questions...' });
+        const difficulty = urlDifficulty;
+        
+        toast({ title: 'Generating Quiz', description: `AI is creating 30 ${difficulty} questions...` });
         
         const response = await supabase.functions.invoke('generate-quiz', {
-          body: { topic: categoryName, difficulty: 'medium', numQuestions: 30, category: categoryName },
+          body: { topic: categoryName, difficulty, numQuestions: 30, category: categoryName },
         });
 
         if (response.error) throw response.error;
@@ -473,6 +481,12 @@ const QuizPage = () => {
                   <Button variant="gaming" size="lg" onClick={restartQuiz}>
                     <RotateCcw className="w-5 h-5 mr-2" />Play Again
                   </Button>
+                  <QuizPdfDownload 
+                    title={quizTitle}
+                    questions={questions}
+                    score={score}
+                    correctAnswers={correctAnswers}
+                  />
                   <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
                     <Home className="w-5 h-5 mr-2" />Categories
                   </Button>
