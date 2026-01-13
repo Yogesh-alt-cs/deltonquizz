@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
+import { CategorySidebar } from "@/components/quiz/CategorySidebar";
 import logo from "@/assets/logo.png";
+
 const categories = [{
   id: "engineering",
   name: "Engineering",
@@ -32,6 +35,7 @@ const categories = [{
   quizCount: 32,
   difficulty: "Easy" as const
 }];
+
 const leaderboardData = [{
   rank: 1,
   username: "QuizMaster",
@@ -54,6 +58,7 @@ const leaderboardData = [{
   username: "SmartCookie",
   score: 37200
 }];
+
 const stats = [{
   label: "Active Players",
   value: "50K+",
@@ -67,10 +72,22 @@ const stats = [{
   value: "100K+",
   icon: Zap
 }];
+
 const Index = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleCategorySelect = (categoryId: string, difficulty: string) => {
+    navigate(`/quiz/${categoryId}?difficulty=${difficulty}`);
+  };
   return <div className="min-h-screen">
       <FloatingParticles />
       <Navbar />
+      <CategorySidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        onCategorySelect={handleCategorySelect}
+      />
       
       <main className="pt-20">
         {/* Hero Section */}
@@ -110,11 +127,20 @@ const Index = () => {
                 </p>
 
                 <div className="flex flex-wrap gap-4">
+                  <Button 
+                    variant="gaming" 
+                    size="lg" 
+                    className="group"
+                    onClick={() => setSidebarOpen(true)}
+                  >
+                    <Menu className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    Quick Start
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
                   <Link to="/categories">
-                    <Button variant="gaming" size="lg" className="group">
-                      <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      Start Playing
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <Button variant="outline" size="lg" className="group">
+                      <Play className="w-5 h-5" />
+                      All Categories
                     </Button>
                   </Link>
                   <Link to="/join">

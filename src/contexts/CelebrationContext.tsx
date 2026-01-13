@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { CelebrationEffects } from '@/components/effects/CelebrationEffects';
 import { setCelebrationCallbacks } from '@/hooks/useGamification';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface Celebration {
   id: string;
@@ -19,16 +20,21 @@ const CelebrationContext = createContext<CelebrationContextType | null>(null);
 
 export function CelebrationProvider({ children }: { children: ReactNode }) {
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  const sounds = useSoundEffects();
 
   const triggerLevelUp = useCallback((level: number) => {
     const id = `levelup-${Date.now()}`;
     setCelebrations(prev => [...prev, { id, type: 'levelUp', level }]);
-  }, []);
+    // Play level up sound
+    sounds.playLevelUp();
+  }, [sounds]);
 
   const triggerBadgeUnlock = useCallback((badgeName: string, badgeIcon: string) => {
     const id = `badge-${Date.now()}`;
     setCelebrations(prev => [...prev, { id, type: 'badge', badgeName, badgeIcon }]);
-  }, []);
+    // Play victory sound for badge unlock
+    sounds.playVictory();
+  }, [sounds]);
 
   const removeCelebration = useCallback((id: string) => {
     setCelebrations(prev => prev.filter(c => c.id !== id));
