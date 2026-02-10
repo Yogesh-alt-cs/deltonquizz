@@ -9,9 +9,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Trophy, Users, Crown, Swords, Calendar, Clock, Plus, 
-  ArrowLeft, Loader2, Medal, ChevronRight, Zap
+  ArrowLeft, Loader2, Medal, ChevronRight, Zap, Trash2, Download
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Tournament {
   id: string;
@@ -79,6 +90,7 @@ const TournamentPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   // Create form state
   const [name, setName] = useState("");
@@ -117,6 +129,12 @@ const TournamentPage = () => {
         table: 'tournament_matches',
         filter: `tournament_id=eq.${selectedTournament.id}`
       }, () => fetchMatches(selectedTournament.id))
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tournaments',
+        filter: `id=eq.${selectedTournament.id}`
+      }, () => fetchTournament(selectedTournament.id))
       .subscribe();
 
     return () => {
@@ -167,7 +185,7 @@ const TournamentPage = () => {
       .from('tournament_participants')
       .select('*')
       .eq('tournament_id', tournamentId)
-      .order('seed');
+      .order('total_score', { ascending: false });
     if (data) setParticipants(data);
   };
 
@@ -255,14 +273,19 @@ const TournamentPage = () => {
       const numRounds = Math.ceil(Math.log2(numParticipants));
       const bracketSize = Math.pow(2, numRounds);
       
+      // Shuffle participants for fair seeding
+      const shuffled = [...participants].sort(() => Math.random() - 0.5);
+      
       const matchesToCreate: any[] = [];
       let matchNumber = 0;
 
       // Create first round matches
       for (let i = 0; i < bracketSize / 2; i++) {
         matchNumber++;
-        const player1 = participants[i * 2];
-        const player2 = participants[i * 2 + 1];
+        const player1 = shuffled[i * 2];
+        const player2 = shuffled[i * 2 + 1];
+
+        const isBye = player1 && !player2;
 
         matchesToCreate.push({
           tournament_id: selectedTournament.id,
@@ -270,8 +293,10 @@ const TournamentPage = () => {
           match_number: matchNumber,
           player1_id: player1?.id || null,
           player2_id: player2?.id || null,
-          status: player1 && player2 ? 'pending' : player1 ? 'bye' : 'pending',
-          winner_id: (player1 && !player2) ? player1.id : null,
+          status: isBye ? 'completed' : 'pending',
+          winner_id: isBye ? player1.id : null,
+          player1_score: 0,
+          player2_score: 0,
         });
       }
 
@@ -291,11 +316,17 @@ const TournamentPage = () => {
         }
       }
 
-      await supabase.from('tournament_matches').insert(matchesToCreate);
-      await supabase
+      const { error: matchError } = await supabase.from('tournament_matches').insert(matchesToCreate);
+      if (matchError) throw matchError;
+
+      const { error: updateError } = await supabase
         .from('tournaments')
         .update({ status: 'in_progress', started_at: new Date().toISOString() })
         .eq('id', selectedTournament.id);
+      if (updateError) throw updateError;
+
+      // Auto-advance byes to next round
+      await advanceByeWinners(selectedTournament.id);
 
       toast({ title: 'Tournament Started!', description: 'Let the games begin!' });
       fetchTournament(selectedTournament.id);
@@ -303,6 +334,238 @@ const TournamentPage = () => {
       console.error('Error starting tournament:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
+  };
+
+  const advanceByeWinners = async (tournamentId: string) => {
+    const { data: allMatches } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .order('round')
+      .order('match_number');
+
+    if (!allMatches) return;
+
+    const matchesByRound: Record<number, typeof allMatches> = {};
+    allMatches.forEach(m => {
+      if (!matchesByRound[m.round]) matchesByRound[m.round] = [];
+      matchesByRound[m.round].push(m);
+    });
+
+    // For round 1 byes, advance winners to round 2
+    const round1 = matchesByRound[1] || [];
+    const round2 = matchesByRound[2] || [];
+    
+    for (let i = 0; i < round1.length; i++) {
+      const match = round1[i];
+      if (match.status === 'completed' && match.winner_id) {
+        const nextMatchIndex = Math.floor(i / 2);
+        if (round2[nextMatchIndex]) {
+          const nextMatch = round2[nextMatchIndex];
+          const field = i % 2 === 0 ? 'player1_id' : 'player2_id';
+          await supabase
+            .from('tournament_matches')
+            .update({ [field]: match.winner_id })
+            .eq('id', nextMatch.id);
+        }
+      }
+    }
+  };
+
+  const handleSimulateMatch = async (match: Match) => {
+    if (!match.player1_id || !match.player2_id || !selectedTournament) return;
+
+    try {
+      // Simulate scores
+      const p1Score = Math.floor(Math.random() * 100) + 50;
+      const p2Score = Math.floor(Math.random() * 100) + 50;
+      const winnerId = p1Score >= p2Score ? match.player1_id : match.player2_id;
+      const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
+
+      // Update match
+      await supabase
+        .from('tournament_matches')
+        .update({
+          player1_score: p1Score,
+          player2_score: p2Score,
+          winner_id: winnerId,
+          status: 'completed',
+          ended_at: new Date().toISOString(),
+        })
+        .eq('id', match.id);
+
+      // Update winner stats
+      await supabase
+        .from('tournament_participants')
+        .update({
+          matches_won: (participants.find(p => p.id === winnerId)?.matches_won || 0) + 1,
+          matches_played: (participants.find(p => p.id === winnerId)?.matches_played || 0) + 1,
+          total_score: (participants.find(p => p.id === winnerId)?.total_score || 0) + (winnerId === match.player1_id ? p1Score : p2Score),
+        })
+        .eq('id', winnerId);
+
+      // Update loser stats & eliminate
+      await supabase
+        .from('tournament_participants')
+        .update({
+          matches_played: (participants.find(p => p.id === loserId)?.matches_played || 0) + 1,
+          total_score: (participants.find(p => p.id === loserId)?.total_score || 0) + (loserId === match.player1_id ? p1Score : p2Score),
+          eliminated: true,
+          eliminated_in_round: match.round,
+        })
+        .eq('id', loserId);
+
+      // Advance winner to next round
+      const { data: allMatches } = await supabase
+        .from('tournament_matches')
+        .select('*')
+        .eq('tournament_id', selectedTournament.id)
+        .order('round')
+        .order('match_number');
+
+      if (allMatches) {
+        const currentRoundMatches = allMatches.filter(m => m.round === match.round);
+        const nextRoundMatches = allMatches.filter(m => m.round === match.round + 1);
+        
+        if (nextRoundMatches.length > 0) {
+          const matchIndexInRound = currentRoundMatches.findIndex(m => m.id === match.id);
+          const nextMatchIndex = Math.floor(matchIndexInRound / 2);
+          const nextMatch = nextRoundMatches[nextMatchIndex];
+          
+          if (nextMatch) {
+            const field = matchIndexInRound % 2 === 0 ? 'player1_id' : 'player2_id';
+            await supabase
+              .from('tournament_matches')
+              .update({ [field]: winnerId })
+              .eq('id', nextMatch.id);
+          }
+        } else {
+          // This was the final match - tournament is over
+          await supabase
+            .from('tournaments')
+            .update({ 
+              status: 'completed', 
+              ended_at: new Date().toISOString() 
+            })
+            .eq('id', selectedTournament.id);
+
+          // Award XP to winner
+          const winnerParticipant = participants.find(p => p.id === winnerId);
+          if (winnerParticipant) {
+            await supabase.rpc('award_xp', {
+              p_user_id: winnerParticipant.user_id,
+              p_xp_amount: 500,
+              p_reason: 'tournament_win',
+            });
+            // Update tournament stats
+            await supabase
+              .from('profiles')
+              .update({
+                tournaments_won: (await supabase.from('profiles').select('tournaments_won').eq('id', winnerParticipant.user_id).single()).data?.tournaments_won || 0 + 1,
+                tournaments_played: (await supabase.from('profiles').select('tournaments_played').eq('id', winnerParticipant.user_id).single()).data?.tournaments_played || 0 + 1,
+              })
+              .eq('id', winnerParticipant.user_id);
+          }
+
+          toast({ title: '🏆 Tournament Complete!', description: `${winnerParticipant?.username || 'Winner'} wins the tournament!` });
+        }
+
+        // Check if all matches in current round are done
+        const allDone = currentRoundMatches.every(m => m.id === match.id || m.status === 'completed');
+        if (allDone) {
+          await supabase
+            .from('tournaments')
+            .update({ current_round: match.round + 1 })
+            .eq('id', selectedTournament.id);
+        }
+      }
+
+      fetchTournament(selectedTournament.id);
+    } catch (error: any) {
+      console.error('Error simulating match:', error);
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteTournament = async () => {
+    if (!selectedTournament || !user || selectedTournament.creator_id !== user.id) return;
+
+    setDeleting(true);
+    try {
+      // Delete matches first, then participants, then tournament
+      await supabase.from('tournament_matches').delete().eq('tournament_id', selectedTournament.id);
+      await supabase.from('tournament_participants').delete().eq('tournament_id', selectedTournament.id);
+      const { error } = await supabase.from('tournaments').delete().eq('id', selectedTournament.id);
+      if (error) throw error;
+
+      toast({ title: 'Deleted', description: 'Tournament has been removed' });
+      navigate('/tournament');
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDownloadResults = (format: 'csv' | 'json') => {
+    if (!selectedTournament) return;
+
+    const data = {
+      tournament: selectedTournament.name,
+      status: selectedTournament.status,
+      difficulty: selectedTournament.difficulty,
+      started_at: selectedTournament.started_at,
+      ended_at: selectedTournament.ended_at,
+      participants: participants.map(p => ({
+        username: p.username,
+        score: p.total_score,
+        matches_won: p.matches_won,
+        matches_played: p.matches_played,
+        eliminated: p.eliminated,
+      })),
+      matches: matches.map(m => {
+        const p1 = participants.find(p => p.id === m.player1_id);
+        const p2 = participants.find(p => p.id === m.player2_id);
+        const winner = participants.find(p => p.id === m.winner_id);
+        return {
+          round: m.round,
+          match_number: m.match_number,
+          player1: p1?.username || 'TBD',
+          player1_score: m.player1_score,
+          player2: p2?.username || 'TBD',
+          player2_score: m.player2_score,
+          winner: winner?.username || 'TBD',
+          status: m.status,
+        };
+      }),
+    };
+
+    let blob: Blob;
+    let filename: string;
+
+    if (format === 'json') {
+      blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      filename = `${selectedTournament.name.replace(/\s+/g, '_')}_results.json`;
+    } else {
+      // CSV
+      const rows = [['Round', 'Match', 'Player 1', 'P1 Score', 'Player 2', 'P2 Score', 'Winner', 'Status']];
+      data.matches.forEach(m => {
+        rows.push([
+          String(m.round), String(m.match_number), m.player1, String(m.player1_score),
+          m.player2, String(m.player2_score), m.winner, m.status,
+        ]);
+      });
+      const csvContent = rows.map(r => r.join(',')).join('\n');
+      blob = new Blob([csvContent], { type: 'text/csv' });
+      filename = `${selectedTournament.name.replace(/\s+/g, '_')}_results.csv`;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const isParticipant = participants.some(p => p.user_id === user?.id);
@@ -314,6 +577,9 @@ const TournamentPage = () => {
   }, {} as Record<number, Match[]>);
 
   const getParticipant = (id: string | null) => participants.find(p => p.id === id);
+
+  // Sorted leaderboard
+  const sortedParticipants = [...participants].sort((a, b) => b.total_score - a.total_score || b.matches_won - a.matches_won);
 
   if (loading) {
     return (
@@ -345,6 +611,7 @@ const TournamentPage = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     selectedTournament.status === 'registration' ? 'bg-success/20 text-success' :
                     selectedTournament.status === 'in_progress' ? 'bg-warning/20 text-warning' :
+                    selectedTournament.status === 'completed' ? 'bg-primary/20 text-primary' :
                     'bg-muted text-muted-foreground'
                   }`}>
                     {selectedTournament.status.replace('_', ' ').toUpperCase()}
@@ -357,21 +624,102 @@ const TournamentPage = () => {
                 </div>
               </div>
 
-              {selectedTournament.status === 'registration' && (
-                <div className="flex gap-2">
-                  {!isParticipant && participants.length < selectedTournament.max_participants && (
-                    <Button variant="gaming" onClick={handleJoinTournament}>
-                      <Swords className="w-4 h-4 mr-2" />Join Tournament
+              <div className="flex gap-2 flex-wrap">
+                {selectedTournament.status === 'registration' && (
+                  <>
+                    {!isParticipant && participants.length < selectedTournament.max_participants && (
+                      <Button variant="gaming" onClick={handleJoinTournament}>
+                        <Swords className="w-4 h-4 mr-2" />Join Tournament
+                      </Button>
+                    )}
+                    {isCreator && participants.length >= 2 && (
+                      <Button onClick={handleStartTournament}>
+                        <Zap className="w-4 h-4 mr-2" />Start Tournament
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {/* Download results */}
+                {matches.length > 0 && (
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" onClick={() => handleDownloadResults('csv')}>
+                      <Download className="w-4 h-4 mr-1" />CSV
                     </Button>
-                  )}
-                  {isCreator && participants.length >= 2 && (
-                    <Button onClick={handleStartTournament}>
-                      <Zap className="w-4 h-4 mr-2" />Start Tournament
+                    <Button variant="outline" size="sm" onClick={() => handleDownloadResults('json')}>
+                      <Download className="w-4 h-4 mr-1" />JSON
                     </Button>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+
+                {/* Delete tournament (creator only) */}
+                {isCreator && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Tournament</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the tournament, all matches, and results. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteTournament}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          disabled={deleting}
+                        >
+                          {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
+
+            {/* Tournament Leaderboard */}
+            {(selectedTournament.status === 'in_progress' || selectedTournament.status === 'completed') && sortedParticipants.length > 0 && (
+              <div className="glass-card p-6 mb-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-warning" />Tournament Leaderboard
+                </h2>
+                <div className="space-y-2">
+                  {sortedParticipants.map((p, idx) => (
+                    <div key={p.id} className={`flex items-center gap-3 p-3 rounded-lg ${
+                      idx === 0 && selectedTournament.status === 'completed' ? 'bg-warning/10 border border-warning/30' : 'bg-background/50'
+                    }`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        idx === 0 ? 'bg-warning/20 text-warning' : idx === 1 ? 'bg-muted text-muted-foreground' : idx === 2 ? 'bg-orange-500/20 text-orange-500' : 'bg-background text-muted-foreground'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          p.username.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-medium">{p.username}</span>
+                        {p.eliminated && <span className="text-xs text-destructive ml-2">Eliminated</span>}
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="font-bold text-primary">{p.total_score}</div>
+                        <div className="text-xs text-muted-foreground">{p.matches_won}W / {p.matches_played}P</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bracket Display */}
             {matches.length > 0 && (
@@ -387,12 +735,14 @@ const TournamentPage = () => {
                         {roundMatches.map((match) => {
                           const p1 = getParticipant(match.player1_id);
                           const p2 = getParticipant(match.player2_id);
+                          const canPlay = isCreator && match.status === 'pending' && match.player1_id && match.player2_id;
                           
                           return (
                             <div 
                               key={match.id}
-                              className="w-48 border border-border rounded-lg overflow-hidden"
+                              className={`w-48 border border-border rounded-lg overflow-hidden ${canPlay ? 'cursor-pointer hover:border-primary/50' : ''}`}
                               style={{ marginBottom: `${(Math.pow(2, parseInt(round)) - 1) * 40}px` }}
+                              onClick={() => canPlay && handleSimulateMatch(match)}
                             >
                               <div className={`flex items-center justify-between px-3 py-2 ${
                                 match.winner_id === match.player1_id ? 'bg-success/20' : 'bg-background/50'
@@ -407,6 +757,11 @@ const TournamentPage = () => {
                                 <span className="text-sm truncate">{p2?.username || 'TBD'}</span>
                                 <span className="font-bold">{match.player2_score}</span>
                               </div>
+                              {canPlay && (
+                                <div className="bg-primary/10 text-primary text-xs text-center py-1 font-medium">
+                                  Click to play match
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -559,6 +914,7 @@ const TournamentPage = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     tournament.status === 'registration' ? 'bg-success/20 text-success' :
                     tournament.status === 'in_progress' ? 'bg-warning/20 text-warning' :
+                    tournament.status === 'completed' ? 'bg-primary/20 text-primary' :
                     'bg-muted text-muted-foreground'
                   }`}>
                     {tournament.status.replace('_', ' ')}
