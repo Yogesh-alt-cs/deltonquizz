@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play, Menu } from "lucide-react";
+import { Trophy, Zap, Users, BookOpen, ArrowRight, Cpu, Globe, Sparkles, Heart, Star, Play, Menu, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
 import { CategorySidebar } from "@/components/quiz/CategorySidebar";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
 const categories = [{
@@ -36,29 +37,6 @@ const categories = [{
   difficulty: "Easy" as const
 }];
 
-const leaderboardData = [{
-  rank: 1,
-  username: "QuizMaster",
-  score: 48750,
-  badge: "Pro"
-}, {
-  rank: 2,
-  username: "BrainStorm",
-  score: 45200
-}, {
-  rank: 3,
-  username: "TriviaKing",
-  score: 42800
-}, {
-  rank: 4,
-  username: "NerdAlert",
-  score: 39500
-}, {
-  rank: 5,
-  username: "SmartCookie",
-  score: 37200
-}];
-
 const stats = [{
   label: "Active Players",
   value: "50K+",
@@ -75,7 +53,41 @@ const stats = [{
 
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchTopPlayers();
+  }, []);
+
+  const fetchTopPlayers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, total_score, xp, level')
+        .order('total_score', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      const entries = (data || [])
+        .filter(p => (p.total_score || 0) > 0 || (p.xp || 0) > 0)
+        .map((p, idx) => ({
+          rank: idx + 1,
+          username: p.username || 'Anonymous',
+          score: p.total_score || 0,
+          avatar: p.avatar_url || undefined,
+          badge: idx === 0 ? 'Champion' : idx < 3 ? 'Top 3' : undefined,
+        }));
+
+      setLeaderboardData(entries);
+    } catch (error) {
+      console.error('Error fetching top players:', error);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
 
   const handleCategorySelect = (categoryId: string, difficulty: string, customTopic?: string) => {
     const params = new URLSearchParams({ difficulty });
@@ -370,7 +382,18 @@ const Index = () => {
             }} viewport={{
               once: true
             }} className="glass-card p-6">
-                <Leaderboard entries={leaderboardData} title="Top Players" />
+                {leaderboardLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : leaderboardData.length > 0 ? (
+                  <Leaderboard entries={leaderboardData} title="Top Players" />
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No players yet. Be the first!</p>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>

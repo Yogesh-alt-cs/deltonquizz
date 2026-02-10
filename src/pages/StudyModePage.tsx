@@ -9,11 +9,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   BookOpen, Brain, RotateCcw, CheckCircle, XCircle, Plus, 
-  Loader2, Calendar, Flame, ArrowLeft, Sparkles, Clock
+  Loader2, Calendar, Flame, ArrowLeft, Sparkles, Clock, Trash2
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Flashcard {
   id: string;
@@ -43,6 +54,7 @@ const StudyModePage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'overview' | 'study' | 'create'>('overview');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Study mode state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -88,6 +100,28 @@ const StudyModePage = () => {
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('id, name');
     if (data) setCategories(data);
+  };
+
+  const handleDeleteFlashcard = async (cardId: string) => {
+    if (!user) return;
+    setDeletingId(cardId);
+    try {
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('id', cardId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setFlashcards(prev => prev.filter(c => c.id !== cardId));
+      setDueCards(prev => prev.filter(c => c.id !== cardId));
+      toast({ title: 'Deleted', description: 'Flashcard removed successfully' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to delete flashcard', variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleCreateFlashcard = async () => {
@@ -476,16 +510,51 @@ const StudyModePage = () => {
                           <p className="font-medium">{card.question}</p>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{card.answer}</p>
                         </div>
-                        <div className="text-right text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <RotateCcw className="w-3 h-3" />
-                            {card.repetitions}x
+                        <div className="flex items-center gap-2 ml-2">
+                          <div className="text-right text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <RotateCcw className="w-3 h-3" />
+                              {card.repetitions}x
+                            </div>
+                            {isDue ? (
+                              <span className="text-warning">Due now</span>
+                            ) : (
+                              <span>Due {new Date(card.next_review_at).toLocaleDateString()}</span>
+                            )}
                           </div>
-                          {isDue ? (
-                            <span className="text-warning">Due now</span>
-                          ) : (
-                            <span>Due {new Date(card.next_review_at).toLocaleDateString()}</span>
-                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Flashcard</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this flashcard? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteFlashcard(card.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deletingId === card.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                  )}
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </motion.div>

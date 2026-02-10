@@ -72,7 +72,7 @@ export default function ProfilePage() {
       return;
     }
     fetchProfile();
-    fetchBadges();
+    fetchBadgesAndCheck();
   }, [user, navigate]);
 
   const fetchProfile = async () => {
@@ -95,8 +95,22 @@ export default function ProfilePage() {
     setLoading(false);
   };
 
-  const fetchBadges = async () => {
+  const fetchBadgesAndCheck = async () => {
     if (!user) return;
+
+    // Fetch profile stats for badge checking
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('total_quizzes_played, multiplayer_wins, xp, level, daily_streak')
+      .eq('id', user.id)
+      .single();
+
+    // Fetch friend count
+    const { count: friendCount } = await supabase
+      .from('friends')
+      .select('*', { count: 'exact', head: true })
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+      .eq('status', 'accepted');
 
     // Fetch all badges
     const { data: allBadges, error: badgesError } = await supabase
@@ -119,10 +133,67 @@ export default function ProfilePage() {
       return;
     }
 
-    // Merge badges with earned status
     const earnedBadgeIds = new Set(userBadges?.map(ub => ub.badge_id) || []);
     const earnedBadgesMap = new Map(userBadges?.map(ub => [ub.badge_id, ub.earned_at]) || []);
-    
+
+    // Check & auto-award unearned badges
+    const stats = {
+      quizzesCompleted: profileData?.total_quizzes_played || 0,
+      challengesWon: profileData?.multiplayer_wins || 0,
+      xp: profileData?.xp || 0,
+      level: profileData?.level || 1,
+      streak: profileData?.daily_streak || 0,
+      friendsAdded: friendCount || 0,
+    };
+
+    for (const badge of (allBadges || [])) {
+      if (earnedBadgeIds.has(badge.id)) continue;
+
+      let earned = false;
+      switch (badge.requirement_type) {
+        case 'quizzes_completed':
+          earned = stats.quizzesCompleted >= badge.requirement_value;
+          break;
+        case 'xp_earned':
+          earned = stats.xp >= badge.requirement_value;
+          break;
+        case 'level_reached':
+          earned = stats.level >= badge.requirement_value;
+          break;
+        case 'streak_days':
+          earned = stats.streak >= badge.requirement_value;
+          break;
+        case 'challenges_won':
+          earned = stats.challengesWon >= badge.requirement_value;
+          break;
+        case 'friends_added':
+          earned = stats.friendsAdded >= badge.requirement_value;
+          break;
+      }
+
+      if (earned) {
+        const { error } = await supabase
+          .from('user_badges')
+          .insert({ user_id: user.id, badge_id: badge.id });
+        if (!error) {
+          earnedBadgeIds.add(badge.id);
+          earnedBadgesMap.set(badge.id, new Date().toISOString());
+          // Award XP for the badge
+          if (badge.xp_reward) {
+            await supabase.rpc('award_xp', {
+              p_user_id: user.id,
+              p_xp_amount: badge.xp_reward,
+              p_reason: `Badge: ${badge.name}`,
+            });
+          }
+          toast({
+            title: `${badge.icon} Badge Unlocked!`,
+            description: `${badge.name}: ${badge.description}`,
+          });
+        }
+      }
+    }
+
     const mergedBadges = (allBadges || []).map(badge => ({
       ...badge,
       earned: earnedBadgeIds.has(badge.id),
@@ -130,6 +201,11 @@ export default function ProfilePage() {
     }));
 
     setBadges(mergedBadges);
+
+    // Refresh profile if badges were awarded (XP may have changed)
+    if (earnedBadgeIds.size > (userBadges?.length || 0)) {
+      fetchProfile();
+    }
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
