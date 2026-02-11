@@ -9,6 +9,18 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { 
   Users, UserPlus, Search, ArrowLeft, Trophy, Zap, Clock,
   Check, X, Swords, Send, Loader2, User
@@ -52,6 +64,11 @@ interface SearchResult {
   level: number;
 }
 
+const challengeCategories = [
+  'Engineering', 'Anime', 'Science', 'Programming', 'Mathematics',
+  'General Knowledge', 'History', 'Geography', 'Sports', 'Movies & TV',
+];
+
 export default function FriendsPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
@@ -64,6 +81,15 @@ export default function FriendsPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Challenge modal state
+  const [challengeModalOpen, setChallengeModalOpen] = useState(false);
+  const [challengeFriendId, setChallengeFriendId] = useState<string | null>(null);
+  const [challengeCategory, setChallengeCategory] = useState('General Knowledge');
+  const [challengeDifficulty, setChallengeDifficulty] = useState('medium');
+  const [challengeMode, setChallengeMode] = useState('timed');
+  const [challengeQuestionCount, setChallengeQuestionCount] = useState(15);
+  const [sendingChallenge, setSendingChallenge] = useState(false);
+
   useEffect(() => {
     if (!user) {
       navigate('/auth');
@@ -72,7 +98,6 @@ export default function FriendsPage() {
     fetchFriends();
     fetchChallenges();
 
-    // Subscribe to real-time updates
     const friendsChannel = supabase
       .channel('friends-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friends' }, () => {
@@ -106,7 +131,6 @@ export default function FriendsPage() {
       return;
     }
 
-    // Fetch profiles for each friend
     const friendsWithProfiles: Friend[] = [];
     const pendingWithProfiles: Friend[] = [];
 
@@ -148,7 +172,6 @@ export default function FriendsPage() {
       return;
     }
 
-    // Enrich with profiles and quiz data
     const enrichedChallenges: Challenge[] = [];
     for (const c of data || []) {
       const { data: challengerProfile } = await supabase
@@ -236,32 +259,65 @@ export default function FriendsPage() {
     }
   };
 
-  const sendChallenge = async (friendId: string) => {
-    if (!user) return;
+  const openChallengeModal = (friendId: string) => {
+    setChallengeFriendId(friendId);
+    setChallengeCategory('General Knowledge');
+    setChallengeDifficulty('medium');
+    setChallengeMode('timed');
+    setChallengeQuestionCount(15);
+    setChallengeModalOpen(true);
+  };
 
-    // Get a random public quiz
-    const { data: quizzes } = await supabase
-      .from('quizzes')
-      .select('id')
-      .eq('is_public', true)
-      .limit(10);
+  const handleSendChallenge = async () => {
+    if (!user || !challengeFriendId) return;
 
-    const randomQuiz = quizzes?.[Math.floor(Math.random() * (quizzes?.length || 1))];
+    setSendingChallenge(true);
+    try {
+      // Create a quiz with the selected config, then challenge
+      const { data: quiz, error: quizError } = await supabase
+        .from('quizzes')
+        .insert({
+          title: `${challengeCategory} Challenge (${challengeDifficulty})`,
+          description: `Friend challenge: ${challengeCategory} - ${challengeDifficulty} - ${challengeMode} - ${challengeQuestionCount} questions`,
+          difficulty: challengeDifficulty,
+          creator_id: user.id,
+          is_public: false,
+        })
+        .select()
+        .single();
 
-    const { error } = await supabase
-      .from('challenges')
-      .insert({
-        challenger_id: user.id,
-        challenged_id: friendId,
-        quiz_id: randomQuiz?.id || null,
-        status: 'pending',
-      });
+      if (quizError) throw quizError;
 
-    if (error) {
-      toast({ title: 'Error', description: 'Failed to send challenge', variant: 'destructive' });
-    } else {
-      toast({ title: 'Challenge sent!', description: 'Waiting for response' });
+      const { error } = await supabase
+        .from('challenges')
+        .insert({
+          challenger_id: user.id,
+          challenged_id: challengeFriendId,
+          quiz_id: quiz.id,
+          status: 'pending',
+        });
+
+      if (error) throw error;
+
+      toast({ title: 'Challenge sent!', description: `${challengeCategory} (${challengeDifficulty}) — waiting for response` });
+      setChallengeModalOpen(false);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to send challenge', variant: 'destructive' });
+    } finally {
+      setSendingChallenge(false);
     }
+  };
+
+  const handleAcceptChallenge = async (challenge: Challenge) => {
+    // Update status to accepted, then navigate to quiz
+    await supabase.from('challenges').update({ status: 'accepted' }).eq('id', challenge.id);
+
+    // Parse challenge config from quiz description if available
+    const desc = challenge.quiz?.title || '';
+    const categoryMatch = desc.match(/^(.+?) Challenge/);
+    const category = categoryMatch ? categoryMatch[1] : 'General Knowledge';
+    
+    navigate(`/quiz/${category.toLowerCase().replace(/\s+/g, '-')}?difficulty=medium&challenge=${challenge.id}`);
   };
 
   if (!user) return null;
@@ -394,7 +450,7 @@ export default function FriendsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => sendChallenge(friend.profile.id)}
+                          onClick={() => openChallengeModal(friend.profile.id)}
                         >
                           <Swords className="w-4 h-4 mr-1" />
                           Challenge
@@ -468,7 +524,7 @@ export default function FriendsPage() {
                               {isChallenger ? 'You challenged' : 'Challenged by'} {opponent?.username || 'Anonymous'}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {challenge.quiz?.title || 'Random Quiz'} • {challenge.status}
+                              {challenge.quiz?.title || 'Quiz Challenge'} • {challenge.status}
                             </p>
                             {challenge.status === 'completed' && (
                               <p className="text-sm font-medium text-primary">
@@ -480,11 +536,7 @@ export default function FriendsPage() {
                         {challenge.status === 'pending' && !isChallenger && (
                           <Button
                             size="sm"
-                            onClick={() => {
-                              if (challenge.quiz_id) {
-                                navigate(`/quiz/${challenge.quiz_id}?challenge=${challenge.id}`);
-                              }
-                            }}
+                            onClick={() => handleAcceptChallenge(challenge)}
                           >
                             Accept
                           </Button>
@@ -498,6 +550,100 @@ export default function FriendsPage() {
           </Tabs>
         </motion.div>
       </main>
+
+      {/* Challenge Setup Modal */}
+      <Dialog open={challengeModalOpen} onOpenChange={setChallengeModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Swords className="w-5 h-5 text-primary" />
+              Challenge Setup
+            </DialogTitle>
+            <DialogDescription>
+              Configure the quiz for your challenge
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            {/* Category */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quiz Category</Label>
+              <Select value={challengeCategory} onValueChange={setChallengeCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {challengeCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Difficulty */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Difficulty</Label>
+              <RadioGroup value={challengeDifficulty} onValueChange={setChallengeDifficulty} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="easy" id="ch-easy" />
+                  <Label htmlFor="ch-easy" className="text-success font-medium">Easy</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="medium" id="ch-medium" />
+                  <Label htmlFor="ch-medium" className="text-warning font-medium">Medium</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="hard" id="ch-hard" />
+                  <Label htmlFor="ch-hard" className="text-destructive font-medium">Hard</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Mode */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quiz Mode</Label>
+              <RadioGroup value={challengeMode} onValueChange={setChallengeMode} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="timed" id="ch-timed" />
+                  <Label htmlFor="ch-timed">Timed</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="battle" id="ch-battle" />
+                  <Label htmlFor="ch-battle">Battle</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="practice" id="ch-practice" />
+                  <Label htmlFor="ch-practice">Practice</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Question Count */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Number of Questions: {challengeQuestionCount}</Label>
+              <Slider
+                value={[challengeQuestionCount]}
+                onValueChange={(val) => setChallengeQuestionCount(val[0])}
+                min={10}
+                max={30}
+                step={5}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>10</span>
+                <span>30</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChallengeModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendChallenge} disabled={sendingChallenge} className="gap-2">
+              {sendingChallenge ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Send Challenge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
