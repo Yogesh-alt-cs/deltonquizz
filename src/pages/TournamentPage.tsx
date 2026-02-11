@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Trophy, Users, Crown, Swords, Calendar, Clock, Plus, 
-  ArrowLeft, Loader2, Medal, ChevronRight, Zap, Trash2, Download
+  ArrowLeft, Loader2, Medal, ChevronRight, Zap, Trash2, Download, Play
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -293,7 +293,7 @@ const TournamentPage = () => {
           match_number: matchNumber,
           player1_id: player1?.id || null,
           player2_id: player2?.id || null,
-          status: isBye ? 'completed' : 'pending',
+          status: isBye ? 'completed' : 'waiting',
           winner_id: isBye ? player1.id : null,
           player1_score: 0,
           player2_score: 0,
@@ -311,7 +311,7 @@ const TournamentPage = () => {
             match_number: matchNumber,
             player1_id: null,
             player2_id: null,
-            status: 'pending',
+            status: 'waiting',
           });
         }
       }
@@ -321,14 +321,14 @@ const TournamentPage = () => {
 
       const { error: updateError } = await supabase
         .from('tournaments')
-        .update({ status: 'in_progress', started_at: new Date().toISOString() })
+        .update({ status: 'in_progress', started_at: new Date().toISOString(), current_round: 1 })
         .eq('id', selectedTournament.id);
       if (updateError) throw updateError;
 
       // Auto-advance byes to next round
       await advanceByeWinners(selectedTournament.id);
 
-      toast({ title: 'Tournament Started!', description: 'Let the games begin!' });
+      toast({ title: 'Tournament Started!', description: 'Matches are ready — click "Play Match" when both players are ready.' });
       fetchTournament(selectedTournament.id);
     } catch (error: any) {
       console.error('Error starting tournament:', error);
@@ -372,17 +372,38 @@ const TournamentPage = () => {
     }
   };
 
-  const handleSimulateMatch = async (match: Match) => {
+  // Start a real quiz match — navigates the current user to take the quiz for this match
+  const handlePlayMatch = (match: Match) => {
     if (!match.player1_id || !match.player2_id || !selectedTournament) return;
 
-    try {
-      // Simulate scores
-      const p1Score = Math.floor(Math.random() * 100) + 50;
-      const p2Score = Math.floor(Math.random() * 100) + 50;
-      const winnerId = p1Score >= p2Score ? match.player1_id : match.player2_id;
-      const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
+    // Check if user is a participant in this match
+    const myParticipant = participants.find(p => p.user_id === user?.id);
+    if (!myParticipant) {
+      toast({ title: 'Not in match', description: 'You are not a participant in this match', variant: 'destructive' });
+      return;
+    }
 
-      // Update match
+    const isInMatch = match.player1_id === myParticipant.id || match.player2_id === myParticipant.id;
+    if (!isInMatch) {
+      toast({ title: 'Not your match', description: 'You are not assigned to this match', variant: 'destructive' });
+      return;
+    }
+
+    // Navigate to quiz with tournament context
+    const category = categories.find(c => c.id === selectedTournament.category_id);
+    const topicName = category?.name || 'General Knowledge';
+    navigate(`/quiz/${topicName.toLowerCase().replace(/\s+/g, '-')}?difficulty=${selectedTournament.difficulty}&questionCount=${selectedTournament.questions_per_match || 10}&tournamentId=${selectedTournament.id}&matchId=${match.id}&participantId=${myParticipant.id}`);
+  };
+
+  // Called by creator to submit scores for a match (after both players finished their quiz)
+  const handleSubmitMatchResult = async (match: Match, p1Score: number, p2Score: number) => {
+    if (!selectedTournament) return;
+
+    const winnerId = p1Score >= p2Score ? match.player1_id : match.player2_id;
+    const loserId = winnerId === match.player1_id ? match.player2_id : match.player1_id;
+
+    try {
+      // Update match with real scores
       await supabase
         .from('tournament_matches')
         .update({
@@ -395,25 +416,31 @@ const TournamentPage = () => {
         .eq('id', match.id);
 
       // Update winner stats
-      await supabase
-        .from('tournament_participants')
-        .update({
-          matches_won: (participants.find(p => p.id === winnerId)?.matches_won || 0) + 1,
-          matches_played: (participants.find(p => p.id === winnerId)?.matches_played || 0) + 1,
-          total_score: (participants.find(p => p.id === winnerId)?.total_score || 0) + (winnerId === match.player1_id ? p1Score : p2Score),
-        })
-        .eq('id', winnerId);
+      const winnerP = participants.find(p => p.id === winnerId);
+      if (winnerP) {
+        await supabase
+          .from('tournament_participants')
+          .update({
+            matches_won: (winnerP.matches_won || 0) + 1,
+            matches_played: (winnerP.matches_played || 0) + 1,
+            total_score: (winnerP.total_score || 0) + (winnerId === match.player1_id ? p1Score : p2Score),
+          })
+          .eq('id', winnerId);
+      }
 
       // Update loser stats & eliminate
-      await supabase
-        .from('tournament_participants')
-        .update({
-          matches_played: (participants.find(p => p.id === loserId)?.matches_played || 0) + 1,
-          total_score: (participants.find(p => p.id === loserId)?.total_score || 0) + (loserId === match.player1_id ? p1Score : p2Score),
-          eliminated: true,
-          eliminated_in_round: match.round,
-        })
-        .eq('id', loserId);
+      const loserP = participants.find(p => p.id === loserId);
+      if (loserP) {
+        await supabase
+          .from('tournament_participants')
+          .update({
+            matches_played: (loserP.matches_played || 0) + 1,
+            total_score: (loserP.total_score || 0) + (loserId === match.player1_id ? p1Score : p2Score),
+            eliminated: true,
+            eliminated_in_round: match.round,
+          })
+          .eq('id', loserId);
+      }
 
       // Advance winner to next round
       const { data: allMatches } = await supabase
@@ -440,7 +467,7 @@ const TournamentPage = () => {
               .eq('id', nextMatch.id);
           }
         } else {
-          // This was the final match - tournament is over
+          // This was the final match — only now announce winner
           await supabase
             .from('tournaments')
             .update({ 
@@ -450,29 +477,20 @@ const TournamentPage = () => {
             .eq('id', selectedTournament.id);
 
           // Award XP to winner
-          const winnerParticipant = participants.find(p => p.id === winnerId);
-          if (winnerParticipant) {
+          if (winnerP) {
             await supabase.rpc('award_xp', {
-              p_user_id: winnerParticipant.user_id,
+              p_user_id: winnerP.user_id,
               p_xp_amount: 500,
               p_reason: 'tournament_win',
             });
-            // Update tournament stats
-            await supabase
-              .from('profiles')
-              .update({
-                tournaments_won: (await supabase.from('profiles').select('tournaments_won').eq('id', winnerParticipant.user_id).single()).data?.tournaments_won || 0 + 1,
-                tournaments_played: (await supabase.from('profiles').select('tournaments_played').eq('id', winnerParticipant.user_id).single()).data?.tournaments_played || 0 + 1,
-              })
-              .eq('id', winnerParticipant.user_id);
           }
 
-          toast({ title: '🏆 Tournament Complete!', description: `${winnerParticipant?.username || 'Winner'} wins the tournament!` });
+          toast({ title: '🏆 Tournament Complete!', description: `${winnerP?.username || 'Winner'} wins the tournament!` });
         }
 
-        // Check if all matches in current round are done
-        const allDone = currentRoundMatches.every(m => m.id === match.id || m.status === 'completed');
-        if (allDone) {
+        // Check if all matches in current round are done to advance round counter
+        const allDone = currentRoundMatches.every(m => m.id === match.id ? true : m.status === 'completed');
+        if (allDone && nextRoundMatches.length > 0) {
           await supabase
             .from('tournaments')
             .update({ current_round: match.round + 1 })
@@ -480,9 +498,10 @@ const TournamentPage = () => {
         }
       }
 
+      toast({ title: 'Match Complete', description: `${winnerP?.username} wins this match!` });
       fetchTournament(selectedTournament.id);
     } catch (error: any) {
-      console.error('Error simulating match:', error);
+      console.error('Error completing match:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };
@@ -492,7 +511,6 @@ const TournamentPage = () => {
 
     setDeleting(true);
     try {
-      // Delete matches first, then participants, then tournament
       await supabase.from('tournament_matches').delete().eq('tournament_id', selectedTournament.id);
       await supabase.from('tournament_participants').delete().eq('tournament_id', selectedTournament.id);
       const { error } = await supabase.from('tournaments').delete().eq('id', selectedTournament.id);
@@ -547,7 +565,6 @@ const TournamentPage = () => {
       blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       filename = `${selectedTournament.name.replace(/\s+/g, '_')}_results.json`;
     } else {
-      // CSV
       const rows = [['Round', 'Match', 'Player 1', 'P1 Score', 'Player 2', 'P2 Score', 'Winner', 'Status']];
       data.matches.forEach(m => {
         rows.push([
@@ -580,6 +597,13 @@ const TournamentPage = () => {
 
   // Sorted leaderboard
   const sortedParticipants = [...participants].sort((a, b) => b.total_score - a.total_score || b.matches_won - a.matches_won);
+
+  // Check if user is in a given match
+  const myParticipant = participants.find(p => p.user_id === user?.id);
+  const isUserInMatch = (match: Match) => {
+    if (!myParticipant) return false;
+    return match.player1_id === myParticipant.id || match.player2_id === myParticipant.id;
+  };
 
   if (loading) {
     return (
@@ -709,7 +733,7 @@ const TournamentPage = () => {
                       </div>
                       <div className="flex-1">
                         <span className="font-medium">{p.username}</span>
-                        {p.eliminated && <span className="text-xs text-destructive ml-2">Eliminated</span>}
+                        {p.eliminated && <span className="text-xs text-destructive ml-2">Eliminated R{(p as any).eliminated_in_round}</span>}
                       </div>
                       <div className="text-right text-sm">
                         <div className="font-bold text-primary">{p.total_score}</div>
@@ -735,33 +759,54 @@ const TournamentPage = () => {
                         {roundMatches.map((match) => {
                           const p1 = getParticipant(match.player1_id);
                           const p2 = getParticipant(match.player2_id);
-                          const canPlay = isCreator && match.status === 'pending' && match.player1_id && match.player2_id;
+                          const matchReady = match.player1_id && match.player2_id && match.status !== 'completed';
+                          const canUserPlay = matchReady && isUserInMatch(match);
                           
                           return (
                             <div 
                               key={match.id}
-                              className={`w-48 border border-border rounded-lg overflow-hidden ${canPlay ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                              className={`w-56 border border-border rounded-lg overflow-hidden`}
                               style={{ marginBottom: `${(Math.pow(2, parseInt(round)) - 1) * 40}px` }}
-                              onClick={() => canPlay && handleSimulateMatch(match)}
                             >
                               <div className={`flex items-center justify-between px-3 py-2 ${
                                 match.winner_id === match.player1_id ? 'bg-success/20' : 'bg-background/50'
                               }`}>
                                 <span className="text-sm truncate">{p1?.username || 'TBD'}</span>
-                                <span className="font-bold">{match.player1_score}</span>
+                                <span className="font-bold">{match.status === 'completed' ? match.player1_score : '-'}</span>
                               </div>
                               <div className="border-t border-border" />
                               <div className={`flex items-center justify-between px-3 py-2 ${
                                 match.winner_id === match.player2_id ? 'bg-success/20' : 'bg-background/50'
                               }`}>
                                 <span className="text-sm truncate">{p2?.username || 'TBD'}</span>
-                                <span className="font-bold">{match.player2_score}</span>
+                                <span className="font-bold">{match.status === 'completed' ? match.player2_score : '-'}</span>
                               </div>
-                              {canPlay && (
-                                <div className="bg-primary/10 text-primary text-xs text-center py-1 font-medium">
-                                  Click to play match
+                              {match.status === 'completed' && (
+                                <div className="bg-success/10 text-success text-xs text-center py-1 font-medium">
+                                  ✓ Completed
                                 </div>
                               )}
+                              {canUserPlay && (
+                                <button
+                                  onClick={() => handlePlayMatch(match)}
+                                  className="w-full bg-primary/10 text-primary text-xs text-center py-2 font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <Play className="w-3 h-3" />
+                                  Play Match
+                                </button>
+                              )}
+                              {matchReady && !canUserPlay && match.status !== 'completed' && (
+                                <div className="bg-warning/10 text-warning text-xs text-center py-1 font-medium">
+                                  Waiting for players
+                                </div>
+                              )}
+                              {!match.player1_id || !match.player2_id ? (
+                                match.status !== 'completed' && (
+                                  <div className="bg-muted text-muted-foreground text-xs text-center py-1">
+                                    Waiting for opponent
+                                  </div>
+                                )
+                              ) : null}
                             </div>
                           );
                         })}
