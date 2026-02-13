@@ -374,7 +374,7 @@ const TournamentPage = () => {
   };
 
   // Start a real quiz match — navigates the current user to take the quiz for this match
-  const handlePlayMatch = (match: Match) => {
+  const handlePlayMatch = async (match: Match) => {
     if (!match.player1_id || !match.player2_id || !selectedTournament) return;
 
     // Check if user is a participant in this match
@@ -388,6 +388,14 @@ const TournamentPage = () => {
     if (!isInMatch) {
       toast({ title: 'Not your match', description: 'You are not assigned to this match', variant: 'destructive' });
       return;
+    }
+
+    // Mark match as in_progress so spectators see it
+    if (match.status === 'waiting') {
+      await supabase
+        .from('tournament_matches')
+        .update({ status: 'in_progress', started_at: new Date().toISOString() })
+        .eq('id', match.id);
     }
 
     // Navigate to quiz with tournament context
@@ -763,31 +771,65 @@ const TournamentPage = () => {
                           const matchReady = match.player1_id && match.player2_id && match.status !== 'completed';
                           const canUserPlay = matchReady && isUserInMatch(match);
                           
+                          // Real-time status: check if match is in_progress or one player submitted a score
+                          const p1Submitted = (match.player1_score || 0) > 0;
+                          const p2Submitted = (match.player2_score || 0) > 0;
+                          const isInProgress = (match.status === 'in_progress') || (matchReady && (p1Submitted || p2Submitted) && match.status !== 'completed');
+                          const bothWaiting = matchReady && !isInProgress && match.status !== 'completed' && match.status !== 'in_progress';
+                          
                           return (
                             <div 
                               key={match.id}
-                              className={`w-56 border border-border rounded-lg overflow-hidden`}
+                              className={`w-56 border rounded-lg overflow-hidden ${
+                                isInProgress ? 'border-warning/60 shadow-[0_0_8px_rgba(234,179,8,0.15)]' :
+                                match.status === 'completed' ? 'border-success/40' : 'border-border'
+                              }`}
                               style={{ marginBottom: `${(Math.pow(2, parseInt(round)) - 1) * 40}px` }}
                             >
+                              {/* Player 1 row */}
                               <div className={`flex items-center justify-between px-3 py-2 ${
                                 match.winner_id === match.player1_id ? 'bg-success/20' : 'bg-background/50'
                               }`}>
-                                <span className="text-sm truncate">{p1?.username || 'TBD'}</span>
-                                <span className="font-bold">{match.status === 'completed' ? match.player1_score : '-'}</span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {isInProgress && p1Submitted && (
+                                    <span className="w-2 h-2 rounded-full bg-success shrink-0" title="Score submitted" />
+                                  )}
+                                  {isInProgress && !p1Submitted && match.player1_id && (
+                                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse shrink-0" title="Playing..." />
+                                  )}
+                                  <span className="text-sm truncate">{p1?.username || 'TBD'}</span>
+                                </div>
+                                <span className="font-bold">{match.status === 'completed' ? match.player1_score : p1Submitted ? match.player1_score : '-'}</span>
                               </div>
                               <div className="border-t border-border" />
+                              {/* Player 2 row */}
                               <div className={`flex items-center justify-between px-3 py-2 ${
                                 match.winner_id === match.player2_id ? 'bg-success/20' : 'bg-background/50'
                               }`}>
-                                <span className="text-sm truncate">{p2?.username || 'TBD'}</span>
-                                <span className="font-bold">{match.status === 'completed' ? match.player2_score : '-'}</span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {isInProgress && p2Submitted && (
+                                    <span className="w-2 h-2 rounded-full bg-success shrink-0" title="Score submitted" />
+                                  )}
+                                  {isInProgress && !p2Submitted && match.player2_id && (
+                                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse shrink-0" title="Playing..." />
+                                  )}
+                                  <span className="text-sm truncate">{p2?.username || 'TBD'}</span>
+                                </div>
+                                <span className="font-bold">{match.status === 'completed' ? match.player2_score : p2Submitted ? match.player2_score : '-'}</span>
                               </div>
+                              {/* Status indicators */}
                               {match.status === 'completed' && (
                                 <div className="bg-success/10 text-success text-xs text-center py-1 font-medium">
                                   ✓ Completed
                                 </div>
                               )}
-                              {canUserPlay && (
+                              {isInProgress && (
+                                <div className="bg-warning/10 text-warning text-xs text-center py-1 font-medium flex items-center justify-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                                  Match In Progress
+                                </div>
+                              )}
+                              {canUserPlay && !isInProgress && (
                                 <button
                                   onClick={() => handlePlayMatch(match)}
                                   className="w-full bg-primary/10 text-primary text-xs text-center py-2 font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1"
@@ -796,18 +838,16 @@ const TournamentPage = () => {
                                   Play Match
                                 </button>
                               )}
-                              {matchReady && !canUserPlay && match.status !== 'completed' && (
-                                <div className="bg-warning/10 text-warning text-xs text-center py-1 font-medium">
+                              {bothWaiting && !canUserPlay && (
+                                <div className="bg-muted/50 text-muted-foreground text-xs text-center py-1">
                                   Waiting for players
                                 </div>
                               )}
-                              {!match.player1_id || !match.player2_id ? (
-                                match.status !== 'completed' && (
-                                  <div className="bg-muted text-muted-foreground text-xs text-center py-1">
-                                    Waiting for opponent
-                                  </div>
-                                )
-                              ) : null}
+                              {(!match.player1_id || !match.player2_id) && match.status !== 'completed' && (
+                                <div className="bg-muted text-muted-foreground text-xs text-center py-1">
+                                  Waiting for opponent
+                                </div>
+                              )}
                             </div>
                           );
                         })}
