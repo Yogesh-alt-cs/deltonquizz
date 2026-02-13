@@ -39,6 +39,13 @@ const QuizPage = () => {
   // Get difficulty and custom topic from URL params (from category sidebar)
   const urlDifficulty = searchParams.get('difficulty') || 'medium';
   const customTopic = searchParams.get('topic');
+  const questionCount = parseInt(searchParams.get('questionCount') || '30', 10);
+  
+  // Tournament context params
+  const tournamentId = searchParams.get('tournamentId');
+  const matchId = searchParams.get('matchId');
+  const participantId = searchParams.get('participantId');
+  
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,28 +107,30 @@ const QuizPage = () => {
         const topicName = customTopic || categoryMap[quizId] || quizId;
         const difficulty = urlDifficulty;
         
+        const numQ = questionCount || 30;
         toast({ 
           title: 'Generating Quiz', 
           description: customTopic 
-            ? `AI is creating 30 ${difficulty} questions about "${customTopic}"...` 
-            : `AI is creating 30 ${difficulty} questions...` 
+            ? `AI is creating ${numQ} ${difficulty} questions about "${customTopic}"...` 
+            : `AI is creating ${numQ} ${difficulty} questions...` 
         });
         
         const response = await supabase.functions.invoke('generate-quiz', {
-          body: { topic: topicName, difficulty, numQuestions: 30, category: customTopic || categoryMap[quizId] || quizId },
+          body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
         });
 
         if (response.error) throw response.error;
         
         setQuizTitle(response.data.title || `${topicName} Quiz`);
-        setQuestions(response.data.questions.map((q: any, i: number) => ({
+        const allQuestions = response.data.questions.map((q: any, i: number) => ({
           id: `q-${i}`, 
           question_text: q.question_text, 
           options: q.options, 
           correct_answer: q.correct_answer,
           explanation: q.explanation, 
           points: q.points || 10,
-        })));
+        }));
+        setQuestions(allQuestions.slice(0, numQ));
         (window as any).__quizStartTime = Date.now();
         setGameState("playing");
       } catch (error: any) {
@@ -294,6 +303,11 @@ const QuizPage = () => {
         time_taken_seconds: Math.floor((Date.now() - (window as any).__quizStartTime) / 1000) || 0,
       });
 
+      // If this is a tournament match, submit score back
+      if (tournamentId && matchId && participantId) {
+        await submitTournamentMatchScore(completed);
+      }
+
       // Award XP
       const xp = await calculateAndAwardXP(completed);
       if (xp) {
@@ -304,6 +318,163 @@ const QuizPage = () => {
       }
     } catch (error) {
       console.error('Error saving session:', error);
+    }
+  };
+
+  const submitTournamentMatchScore = async (completed: boolean) => {
+    if (!matchId || !participantId || !tournamentId) return;
+
+    try {
+      // Get the match to determine which player slot we are
+      const { data: match } = await supabase
+        .from('tournament_matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+
+      if (!match) return;
+
+      const isPlayer1 = match.player1_id === participantId;
+      const scoreField = isPlayer1 ? 'player1_score' : 'player2_score';
+
+      // Update our score on the match
+      await supabase
+        .from('tournament_matches')
+        .update({ [scoreField]: score })
+        .eq('id', matchId);
+
+      // Refetch match to check if both players have submitted
+      const { data: updatedMatch } = await supabase
+        .from('tournament_matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+
+      if (!updatedMatch) return;
+
+      const p1Score = updatedMatch.player1_score || 0;
+      const p2Score = updatedMatch.player2_score || 0;
+      const bothPlayed = p1Score > 0 || p2Score > 0;
+
+      // Only finalize match if both scores are set (both > 0, or check if both have played)
+      // We check if the OTHER player's score is also > 0, meaning they've submitted
+      const otherScoreField = isPlayer1 ? 'player2_score' : 'player1_score';
+      const otherScore = isPlayer1 ? p2Score : p1Score;
+
+      if (otherScore > 0) {
+        // Both players have submitted — determine winner
+        const winnerId = p1Score >= p2Score ? updatedMatch.player1_id : updatedMatch.player2_id;
+        const loserId = winnerId === updatedMatch.player1_id ? updatedMatch.player2_id : updatedMatch.player1_id;
+
+        await supabase
+          .from('tournament_matches')
+          .update({
+            winner_id: winnerId,
+            status: 'completed',
+            ended_at: new Date().toISOString(),
+          })
+          .eq('id', matchId);
+
+        // Update participant stats
+        if (winnerId) {
+          const { data: winnerP } = await supabase
+            .from('tournament_participants')
+            .select('*')
+            .eq('id', winnerId)
+            .single();
+          if (winnerP) {
+            await supabase
+              .from('tournament_participants')
+              .update({
+                matches_won: (winnerP.matches_won || 0) + 1,
+                matches_played: (winnerP.matches_played || 0) + 1,
+                total_score: (winnerP.total_score || 0) + (winnerId === updatedMatch.player1_id ? p1Score : p2Score),
+              })
+              .eq('id', winnerId);
+          }
+        }
+
+        if (loserId) {
+          const { data: loserP } = await supabase
+            .from('tournament_participants')
+            .select('*')
+            .eq('id', loserId)
+            .single();
+          if (loserP) {
+            const loserScore = loserId === updatedMatch.player1_id ? p1Score : p2Score;
+            await supabase
+              .from('tournament_participants')
+              .update({
+                matches_played: (loserP.matches_played || 0) + 1,
+                total_score: (loserP.total_score || 0) + loserScore,
+                eliminated: true,
+                eliminated_in_round: updatedMatch.round,
+              })
+              .eq('id', loserId);
+          }
+        }
+
+        // Advance winner to next round
+        const { data: allMatches } = await supabase
+          .from('tournament_matches')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .order('round')
+          .order('match_number');
+
+        if (allMatches && winnerId) {
+          const currentRoundMatches = allMatches.filter(m => m.round === updatedMatch.round);
+          const nextRoundMatches = allMatches.filter(m => m.round === updatedMatch.round + 1);
+
+          if (nextRoundMatches.length > 0) {
+            const matchIndexInRound = currentRoundMatches.findIndex(m => m.id === matchId);
+            const nextMatchIndex = Math.floor(matchIndexInRound / 2);
+            const nextMatch = nextRoundMatches[nextMatchIndex];
+            if (nextMatch) {
+              const field = matchIndexInRound % 2 === 0 ? 'player1_id' : 'player2_id';
+              await supabase
+                .from('tournament_matches')
+                .update({ [field]: winnerId })
+                .eq('id', nextMatch.id);
+            }
+          } else {
+            // Final match — tournament complete
+            await supabase
+              .from('tournaments')
+              .update({ status: 'completed', ended_at: new Date().toISOString() })
+              .eq('id', tournamentId);
+
+            // Award XP to winner
+            const { data: winnerP } = await supabase
+              .from('tournament_participants')
+              .select('user_id')
+              .eq('id', winnerId)
+              .single();
+            if (winnerP) {
+              await supabase.rpc('award_xp', {
+                p_user_id: winnerP.user_id,
+                p_xp_amount: 500,
+                p_reason: 'tournament_win',
+              });
+            }
+          }
+
+          // Check if all matches in current round are done
+          const allDone = currentRoundMatches.every(m => m.id === matchId ? true : m.status === 'completed');
+          if (allDone && nextRoundMatches.length > 0) {
+            await supabase
+              .from('tournaments')
+              .update({ current_round: updatedMatch.round + 1 })
+              .eq('id', tournamentId);
+          }
+        }
+
+        toast({ title: 'Match Complete!', description: 'Your score has been submitted to the tournament.' });
+      } else {
+        toast({ title: 'Score Submitted', description: 'Waiting for your opponent to finish their quiz.' });
+      }
+    } catch (error) {
+      console.error('Error submitting tournament score:', error);
     }
   };
 
@@ -484,18 +655,26 @@ const QuizPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button variant="gaming" size="lg" onClick={restartQuiz}>
-                    <RotateCcw className="w-5 h-5 mr-2" />Play Again
-                  </Button>
+                  {tournamentId ? (
+                    <Button variant="gaming" size="lg" onClick={() => navigate(`/tournament/${tournamentId}`)}>
+                      <Trophy className="w-5 h-5 mr-2" />Back to Tournament
+                    </Button>
+                  ) : (
+                    <Button variant="gaming" size="lg" onClick={restartQuiz}>
+                      <RotateCcw className="w-5 h-5 mr-2" />Play Again
+                    </Button>
+                  )}
                   <QuizPdfDownload 
                     title={quizTitle}
                     questions={questions}
                     score={score}
                     correctAnswers={correctAnswers}
                   />
-                  <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
-                    <Home className="w-5 h-5 mr-2" />Categories
-                  </Button>
+                  {!tournamentId && (
+                    <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
+                      <Home className="w-5 h-5 mr-2" />Categories
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.div>

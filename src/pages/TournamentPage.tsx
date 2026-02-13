@@ -216,6 +216,7 @@ const TournamentPage = () => {
           category_id: categoryId || null,
           difficulty,
           max_participants: parseInt(maxParticipants),
+          status: 'registration',
         })
         .select()
         .single();
