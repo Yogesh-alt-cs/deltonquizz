@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,13 @@ const TournamentPage = () => {
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Match Ready state
+  const [readyMatch, setReadyMatch] = useState<Match | null>(null);
+  const [myReady, setMyReady] = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const readyChannelRef = useRef<any>(null);
   
   // Create form state
   const [name, setName] = useState("");
@@ -373,11 +380,10 @@ const TournamentPage = () => {
     }
   };
 
-  // Start a real quiz match — navigates the current user to take the quiz for this match
+  // Open Match Ready overlay instead of navigating directly
   const handlePlayMatch = async (match: Match) => {
     if (!match.player1_id || !match.player2_id || !selectedTournament) return;
 
-    // Check if user is a participant in this match
     const myParticipant = participants.find(p => p.user_id === user?.id);
     if (!myParticipant) {
       toast({ title: 'Not in match', description: 'You are not a participant in this match', variant: 'destructive' });
@@ -390,19 +396,92 @@ const TournamentPage = () => {
       return;
     }
 
-    // Mark match as active so spectators see it
-    if (match.status === 'pending') {
-      await supabase
+    // Open ready overlay
+    setReadyMatch(match);
+    setMyReady(false);
+    setOpponentReady(false);
+    setCountdown(null);
+
+    // Subscribe to a broadcast channel for this match's ready state
+    const channel = supabase.channel(`match-ready-${match.id}`)
+      .on('broadcast', { event: 'player-ready' }, (payload) => {
+        if (payload.payload.participantId !== myParticipant.id) {
+          setOpponentReady(true);
+        }
+      })
+      .subscribe();
+
+    readyChannelRef.current = channel;
+  };
+
+  const handleReadyClick = () => {
+    if (!readyMatch || myReady) return;
+    const myParticipant = participants.find(p => p.user_id === user?.id);
+    if (!myParticipant) return;
+
+    setMyReady(true);
+
+    // Broadcast ready to opponent
+    readyChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'player-ready',
+      payload: { participantId: myParticipant.id },
+    });
+  };
+
+  const handleCancelReady = () => {
+    setReadyMatch(null);
+    setMyReady(false);
+    setOpponentReady(false);
+    setCountdown(null);
+    if (readyChannelRef.current) {
+      supabase.removeChannel(readyChannelRef.current);
+      readyChannelRef.current = null;
+    }
+  };
+
+  // When both ready, start countdown
+  useEffect(() => {
+    if (myReady && opponentReady && countdown === null) {
+      setCountdown(3);
+    }
+  }, [myReady, opponentReady, countdown]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown === null || countdown < 0) return;
+
+    if (countdown === 0) {
+      // Navigate to quiz
+      const match = readyMatch;
+      if (!match || !selectedTournament) return;
+
+      const myParticipant = participants.find(p => p.user_id === user?.id);
+      if (!myParticipant) return;
+
+      // Mark match as active
+      supabase
         .from('tournament_matches')
         .update({ status: 'active', started_at: new Date().toISOString() })
-        .eq('id', match.id);
+        .eq('id', match.id)
+        .then(() => {
+          // Cleanup
+          if (readyChannelRef.current) {
+            supabase.removeChannel(readyChannelRef.current);
+            readyChannelRef.current = null;
+          }
+          setReadyMatch(null);
+
+          const category = categories.find(c => c.id === selectedTournament.category_id);
+          const topicName = category?.name || 'General Knowledge';
+          navigate(`/quiz/${topicName.toLowerCase().replace(/\s+/g, '-')}?difficulty=${selectedTournament.difficulty}&questionCount=${selectedTournament.questions_per_match || 10}&tournamentId=${selectedTournament.id}&matchId=${match.id}&participantId=${myParticipant.id}`);
+        });
+      return;
     }
 
-    // Navigate to quiz with tournament context
-    const category = categories.find(c => c.id === selectedTournament.category_id);
-    const topicName = category?.name || 'General Knowledge';
-    navigate(`/quiz/${topicName.toLowerCase().replace(/\s+/g, '-')}?difficulty=${selectedTournament.difficulty}&questionCount=${selectedTournament.questions_per_match || 10}&tournamentId=${selectedTournament.id}&matchId=${match.id}&participantId=${myParticipant.id}`);
-  };
+    const timer = setTimeout(() => setCountdown(prev => (prev !== null ? prev - 1 : null)), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   // Called by creator to submit scores for a match (after both players finished their quiz)
   const handleSubmitMatchResult = async (match: Match, p1Score: number, p2Score: number) => {
@@ -901,6 +980,147 @@ const TournamentPage = () => {
             </div>
           </motion.div>
         </main>
+
+        {/* Match Ready Overlay */}
+        <AnimatePresence>
+          {readyMatch && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="glass-card p-8 max-w-md w-full mx-4 text-center"
+              >
+                {countdown !== null && countdown > 0 ? (
+                  // Countdown display
+                  <div>
+                    <motion.div
+                      key={countdown}
+                      initial={{ scale: 2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-8xl font-bold text-primary mb-4"
+                    >
+                      {countdown}
+                    </motion.div>
+                    <p className="text-xl font-semibold text-foreground">Get Ready!</p>
+                  </div>
+                ) : countdown === 0 ? (
+                  <div>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1.2 }}
+                      className="text-6xl font-bold text-success mb-4"
+                    >
+                      GO!
+                    </motion.div>
+                  </div>
+                ) : (
+                  // Ready state
+                  <div>
+                    <Swords className="w-16 h-16 text-primary mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold mb-2 text-foreground">Match Ready</h2>
+                    <p className="text-muted-foreground mb-6">Both players must click Ready to start</p>
+
+                    <div className="flex justify-center gap-8 mb-8">
+                      {/* Player 1 */}
+                      <div className="text-center">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2 transition-colors ${
+                          (() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP1 = readyMatch.player1_id === myP?.id;
+                            const p1Ready = isP1 ? myReady : opponentReady;
+                            return p1Ready ? 'bg-success/20 text-success border-2 border-success' : 'bg-muted text-muted-foreground border-2 border-border';
+                          })()
+                        }`}>
+                          {getParticipant(readyMatch.player1_id)?.username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <p className="text-sm font-medium truncate max-w-[80px]">
+                          {getParticipant(readyMatch.player1_id)?.username || 'Player 1'}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          (() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP1 = readyMatch.player1_id === myP?.id;
+                            return (isP1 ? myReady : opponentReady) ? 'text-success' : 'text-muted-foreground';
+                          })()
+                        }`}>
+                          {(() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP1 = readyMatch.player1_id === myP?.id;
+                            return (isP1 ? myReady : opponentReady) ? '✓ Ready' : 'Waiting...';
+                          })()}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center">
+                        <span className="text-2xl font-bold text-muted-foreground">VS</span>
+                      </div>
+
+                      {/* Player 2 */}
+                      <div className="text-center">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2 transition-colors ${
+                          (() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP2 = readyMatch.player2_id === myP?.id;
+                            const p2Ready = isP2 ? myReady : opponentReady;
+                            return p2Ready ? 'bg-success/20 text-success border-2 border-success' : 'bg-muted text-muted-foreground border-2 border-border';
+                          })()
+                        }`}>
+                          {getParticipant(readyMatch.player2_id)?.username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <p className="text-sm font-medium truncate max-w-[80px]">
+                          {getParticipant(readyMatch.player2_id)?.username || 'Player 2'}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          (() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP2 = readyMatch.player2_id === myP?.id;
+                            return (isP2 ? myReady : opponentReady) ? 'text-success' : 'text-muted-foreground';
+                          })()
+                        }`}>
+                          {(() => {
+                            const myP = participants.find(p => p.user_id === user?.id);
+                            const isP2 = readyMatch.player2_id === myP?.id;
+                            return (isP2 ? myReady : opponentReady) ? '✓ Ready' : 'Waiting...';
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 justify-center">
+                      <Button variant="outline" onClick={handleCancelReady}>
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="gaming"
+                        size="lg"
+                        onClick={handleReadyClick}
+                        disabled={myReady}
+                        className="min-w-[140px]"
+                      >
+                        {myReady ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Waiting...
+                          </span>
+                        ) : (
+                          'Ready!'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
