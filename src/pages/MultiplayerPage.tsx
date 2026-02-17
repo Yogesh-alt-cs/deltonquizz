@@ -12,6 +12,7 @@ import { useMultiplayer } from "@/hooks/useMultiplayer";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { saveQuizHistory } from "@/utils/saveQuizHistory";
 import { 
   Users, Crown, Copy, Play, ArrowLeft, Loader2, CheckCircle2, 
   Trophy, Star, Zap, Twitter, Facebook, Link as LinkIcon 
@@ -76,6 +77,24 @@ const MultiplayerPage = () => {
       setGamePhase('results');
       setShowConfetti(true);
       sounds.playVictory();
+      // Save multiplayer history
+      if (user && currentPlayer) {
+        const timeTaken = Math.floor((Date.now() - (window as any).__mpStartTime || Date.now()) / 1000);
+        saveQuizHistory({
+          userId: user.id,
+          quizId: room.id,
+          quizTitle: 'Multiplayer Quiz',
+          category: 'Multiplayer',
+          score: currentPlayer.score || 0,
+          totalQuestions: questions.length || 10,
+          correctAnswers: 0,
+          accuracy: 0,
+          timeTakenSeconds: timeTaken,
+          mode: 'multiplayer',
+          maxStreak: currentPlayer.current_streak || 0,
+          completed: true,
+        });
+      }
     }
   }, [room?.status]);
 

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
 import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp } from "lucide-react";
+import { saveQuizHistory } from "@/utils/saveQuizHistory";
 interface Question {
   id: string;
   question_text: string;
@@ -292,6 +293,10 @@ const QuizPage = () => {
     if (!user) return;
     
     try {
+      const timeTaken = Math.floor((Date.now() - (window as any).__quizStartTime) / 1000) || 0;
+      const answeredQuestions = currentQuestionIndex + (completed ? 1 : 0);
+      const accuracy = answeredQuestions > 0 ? (correctAnswers / answeredQuestions) * 100 : 0;
+
       await supabase.from('quiz_sessions').insert({
         user_id: user.id,
         quiz_id: quizId || 'generated',
@@ -300,7 +305,24 @@ const QuizPage = () => {
         completed,
         completed_at: completed ? new Date().toISOString() : null,
         current_question: currentQuestionIndex,
-        time_taken_seconds: Math.floor((Date.now() - (window as any).__quizStartTime) / 1000) || 0,
+        time_taken_seconds: timeTaken,
+      });
+
+      // Save to centralized quiz_history
+      const mode = tournamentId ? 'tournament' : 'solo';
+      await saveQuizHistory({
+        userId: user.id,
+        quizId: quizId || 'generated',
+        quizTitle: quizTitle || 'Quiz',
+        category: customTopic || quizId || undefined,
+        score,
+        totalQuestions: questions.length,
+        correctAnswers,
+        accuracy: Math.round(accuracy * 100) / 100,
+        timeTakenSeconds: timeTaken,
+        mode,
+        maxStreak,
+        completed,
       });
 
       // If this is a tournament match, submit score back

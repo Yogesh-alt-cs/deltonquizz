@@ -294,7 +294,7 @@ const TournamentPage = () => {
           match_number: matchNumber,
           player1_id: player1?.id || null,
           player2_id: player2?.id || null,
-          status: isBye ? 'completed' : 'waiting',
+          status: isBye ? 'completed' : 'pending',
           winner_id: isBye ? player1.id : null,
           player1_score: 0,
           player2_score: 0,
@@ -312,7 +312,7 @@ const TournamentPage = () => {
             match_number: matchNumber,
             player1_id: null,
             player2_id: null,
-            status: 'waiting',
+            status: 'pending',
           });
         }
       }
@@ -390,11 +390,11 @@ const TournamentPage = () => {
       return;
     }
 
-    // Mark match as in_progress so spectators see it
-    if (match.status === 'waiting') {
+    // Mark match as active so spectators see it
+    if (match.status === 'pending') {
       await supabase
         .from('tournament_matches')
-        .update({ status: 'in_progress', started_at: new Date().toISOString() })
+        .update({ status: 'active', started_at: new Date().toISOString() })
         .eq('id', match.id);
     }
 
@@ -774,8 +774,8 @@ const TournamentPage = () => {
                           // Real-time status: check if match is in_progress or one player submitted a score
                           const p1Submitted = (match.player1_score || 0) > 0;
                           const p2Submitted = (match.player2_score || 0) > 0;
-                          const isInProgress = (match.status === 'in_progress') || (matchReady && (p1Submitted || p2Submitted) && match.status !== 'completed');
-                          const bothWaiting = matchReady && !isInProgress && match.status !== 'completed' && match.status !== 'in_progress';
+                          const isInProgress = (match.status === 'active') || (matchReady && (p1Submitted || p2Submitted) && match.status !== 'completed');
+                          const bothWaiting = matchReady && !isInProgress && match.status !== 'completed' && match.status !== 'active';
                           
                           return (
                             <div 

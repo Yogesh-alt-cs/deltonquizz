@@ -719,6 +719,57 @@ export type Database = {
           },
         ]
       }
+      quiz_history: {
+        Row: {
+          accuracy: number
+          category: string | null
+          completed: boolean | null
+          correct_answers: number
+          created_at: string
+          id: string
+          max_streak: number | null
+          mode: string
+          quiz_id: string | null
+          quiz_title: string
+          score: number
+          time_taken_seconds: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number
+          category?: string | null
+          completed?: boolean | null
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          max_streak?: number | null
+          mode?: string
+          quiz_id?: string | null
+          quiz_title: string
+          score?: number
+          time_taken_seconds?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          category?: string | null
+          completed?: boolean | null
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          max_streak?: number | null
+          mode?: string
+          quiz_id?: string | null
+          quiz_title?: string
+          score?: number
+          time_taken_seconds?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       quiz_sessions: {
         Row: {
           completed: boolean | null

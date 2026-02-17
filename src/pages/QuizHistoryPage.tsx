@@ -22,6 +22,12 @@ interface QuizSession {
   created_at: string;
   time_taken_seconds: number;
   current_question: number;
+  mode?: string;
+  quiz_title?: string;
+  category?: string;
+  total_questions?: number;
+  correct_answers?: number;
+  accuracy?: number;
   quiz?: {
     title: string;
     difficulty: string | null;
@@ -46,7 +52,8 @@ export default function QuizHistoryPage() {
   const fetchHistory = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    // Fetch from quiz_sessions (legacy)
+    const { data: sessionsData } = await supabase
       .from('quiz_sessions')
       .select(`
         *,
@@ -60,11 +67,48 @@ export default function QuizHistoryPage() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) {
-      console.error('Error fetching history:', error);
-    } else {
-      setSessions(data || []);
+    // Fetch from quiz_history (new centralized)
+    const { data: historyData } = await supabase
+      .from('quiz_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // Merge: convert quiz_history rows to match QuizSession shape
+    const historyAsSessions: QuizSession[] = (historyData || []).map((h: any) => ({
+      id: h.id,
+      quiz_id: h.quiz_id || '',
+      score: h.score,
+      max_streak: h.max_streak || 0,
+      completed: h.completed,
+      completed_at: h.created_at,
+      created_at: h.created_at,
+      time_taken_seconds: h.time_taken_seconds,
+      current_question: h.total_questions || 0,
+      mode: h.mode,
+      quiz_title: h.quiz_title,
+      category: h.category,
+      total_questions: h.total_questions,
+      correct_answers: h.correct_answers,
+      accuracy: h.accuracy,
+    }));
+
+    // Combine and deduplicate by created_at proximity, sort by date
+    const allSessions = [...(sessionsData || []), ...historyAsSessions];
+    allSessions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Remove near-duplicate entries (same quiz within 5s)
+    const deduped: QuizSession[] = [];
+    for (const s of allSessions) {
+      const isDupe = deduped.some(d => 
+        d.quiz_id === s.quiz_id && 
+        Math.abs(new Date(d.created_at).getTime() - new Date(s.created_at).getTime()) < 5000
+      );
+      if (!isDupe) deduped.push(s);
     }
+
+    setSessions(deduped.slice(0, 100));
     setLoading(false);
   };
 
@@ -148,8 +192,13 @@ export default function QuizHistoryPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-foreground truncate">
-                            {session.quiz?.title || 'Quiz'}
+                            {session.quiz_title || session.quiz?.title || 'Quiz'}
                           </h3>
+                          {session.mode && session.mode !== 'solo' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize">
+                              {session.mode}
+                            </span>
+                          )}
                           {session.quiz?.difficulty && (
                             <span className={`text-xs capitalize ${getDifficultyColor(session.quiz.difficulty)}`}>
                               {session.quiz.difficulty}
