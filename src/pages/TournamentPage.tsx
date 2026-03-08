@@ -411,6 +411,7 @@ const TournamentPage = () => {
       .on('broadcast', { event: 'player-ready' }, (payload) => {
         if (payload.payload.participantId !== myParticipant.id) {
           setOpponentReady(true);
+          playReadyUp();
         }
       })
       .subscribe();
