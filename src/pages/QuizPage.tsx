@@ -297,18 +297,27 @@ const QuizPage = () => {
       const answeredQuestions = currentQuestionIndex + (completed ? 1 : 0);
       const accuracy = answeredQuestions > 0 ? (correctAnswers / answeredQuestions) * 100 : 0;
 
-      await supabase.from('quiz_sessions').insert({
-        user_id: user.id,
-        quiz_id: quizId || 'generated',
-        score,
-        max_streak: maxStreak,
-        completed,
-        completed_at: completed ? new Date().toISOString() : null,
-        current_question: currentQuestionIndex,
-        time_taken_seconds: timeTaken,
-      });
+      // Try saving to legacy quiz_sessions (may fail for generated quizzes with non-UUID ids)
+      try {
+        // Only insert if quizId looks like a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (quizId && uuidRegex.test(quizId)) {
+          await supabase.from('quiz_sessions').insert({
+            user_id: user.id,
+            quiz_id: quizId,
+            score,
+            max_streak: maxStreak,
+            completed,
+            completed_at: completed ? new Date().toISOString() : null,
+            current_question: currentQuestionIndex,
+            time_taken_seconds: timeTaken,
+          });
+        }
+      } catch (sessionErr) {
+        console.warn("quiz_sessions insert skipped:", sessionErr);
+      }
 
-      // Save to centralized quiz_history
+      // Always save to centralized quiz_history (text-based quiz_id, always works)
       const mode = tournamentId ? 'tournament' : 'solo';
       await saveQuizHistory({
         userId: user.id,
