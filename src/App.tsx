@@ -24,6 +24,7 @@ import QuizHistoryPage from "./pages/QuizHistoryPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import FriendsPage from "./pages/FriendsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/quiz/:quizId" element={<QuizPage />} />
                 <Route path="/create" element={<CreateQuizPage />} />
