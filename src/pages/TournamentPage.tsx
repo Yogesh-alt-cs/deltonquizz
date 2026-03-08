@@ -1048,7 +1048,13 @@ const TournamentPage = () => {
                   <div>
                     <Swords className="w-16 h-16 text-primary mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2 text-foreground">Match Ready</h2>
-                    <p className="text-muted-foreground mb-6">Both players must click Ready to start</p>
+                    <p className="text-muted-foreground mb-2">Both players must click Ready to start</p>
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className={`text-sm font-mono font-semibold ${readyTimeout <= 10 ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}>
+                        {readyTimeout}s remaining
+                      </span>
+                    </div>
 
                     <div className="flex justify-center gap-8 mb-8">
                       {/* Player 1 */}
