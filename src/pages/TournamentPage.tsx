@@ -97,6 +97,7 @@ const TournamentPage = () => {
   const [myReady, setMyReady] = useState(false);
   const [opponentReady, setOpponentReady] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [readyTimeout, setReadyTimeout] = useState<number>(60);
   const readyChannelRef = useRef<any>(null);
   
   // Create form state
@@ -401,6 +402,7 @@ const TournamentPage = () => {
     setMyReady(false);
     setOpponentReady(false);
     setCountdown(null);
+    setReadyTimeout(60);
 
     // Subscribe to a broadcast channel for this match's ready state
     const channel = supabase.channel(`match-ready-${match.id}`)
@@ -439,6 +441,26 @@ const TournamentPage = () => {
       readyChannelRef.current = null;
     }
   };
+
+  // 60-second timeout for opponent to ready up
+  useEffect(() => {
+    if (!readyMatch || countdown !== null) return;
+    if (myReady && opponentReady) return; // both ready, no need for timeout
+
+    const timer = setInterval(() => {
+      setReadyTimeout(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          toast({ title: 'Match timed out', description: 'Opponent did not ready up in time. Match cancelled.', variant: 'destructive' });
+          handleCancelReady();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [readyMatch, countdown, myReady, opponentReady]);
 
   // When both ready, start countdown
   useEffect(() => {
@@ -1026,7 +1048,13 @@ const TournamentPage = () => {
                   <div>
                     <Swords className="w-16 h-16 text-primary mx-auto mb-4" />
                     <h2 className="text-2xl font-bold mb-2 text-foreground">Match Ready</h2>
-                    <p className="text-muted-foreground mb-6">Both players must click Ready to start</p>
+                    <p className="text-muted-foreground mb-2">Both players must click Ready to start</p>
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className={`text-sm font-mono font-semibold ${readyTimeout <= 10 ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}>
+                        {readyTimeout}s remaining
+                      </span>
+                    </div>
 
                     <div className="flex justify-center gap-8 mb-8">
                       {/* Player 1 */}
