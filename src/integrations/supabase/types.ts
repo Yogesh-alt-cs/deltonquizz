@@ -1239,6 +1239,7 @@ export type Database = {
         }[]
       }
       calculate_level: { Args: { xp_amount: number }; Returns: number }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       update_daily_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
