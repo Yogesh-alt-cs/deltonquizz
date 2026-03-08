@@ -481,6 +481,7 @@ const TournamentPage = () => {
     if (countdown === null || countdown < 0) return;
 
     if (countdown === 0) {
+      playGo();
       // Navigate to quiz
       const match = readyMatch;
       if (!match || !selectedTournament) return;
@@ -508,6 +509,7 @@ const TournamentPage = () => {
       return;
     }
 
+    playCountdown();
     const timer = setTimeout(() => setCountdown(prev => (prev !== null ? prev - 1 : null)), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
