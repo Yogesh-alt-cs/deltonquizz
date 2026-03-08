@@ -82,6 +82,7 @@ const TournamentPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { playTick, playReadyUp, playTimeout, playGo, playCountdown } = useSoundEffects();
   
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
