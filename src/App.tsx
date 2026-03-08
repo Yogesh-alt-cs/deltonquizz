@@ -24,6 +24,7 @@ import QuizHistoryPage from "./pages/QuizHistoryPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import FriendsPage from "./pages/FriendsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
