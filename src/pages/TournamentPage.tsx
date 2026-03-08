@@ -97,6 +97,7 @@ const TournamentPage = () => {
   const [myReady, setMyReady] = useState(false);
   const [opponentReady, setOpponentReady] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [readyTimeout, setReadyTimeout] = useState<number>(60);
   const readyChannelRef = useRef<any>(null);
   
   // Create form state
