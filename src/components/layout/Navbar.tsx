@@ -202,21 +202,31 @@ export const Navbar = () => {
                 </motion.div>
               </Link>
               
-              <div className="flex gap-2 mt-4 px-4">
+              <div className="flex flex-col gap-2 mt-4 px-4">
                 {user ? (
                   <>
-                    <Link to="/dashboard" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
-                        Dashboard
-                      </Button>
-                    </Link>
-                    <Link to="/profile" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="gaming" size="sm" className="w-full">
-                        <User className="w-4 h-4 mr-2" />
-                        Profile
-                      </Button>
-                    </Link>
+                    {isAdmin && (
+                      <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="outline" size="sm" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Admin
+                        </Button>
+                      </Link>
+                    )}
+                    <div className="flex gap-2">
+                      <Link to="/dashboard" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          Dashboard
+                        </Button>
+                      </Link>
+                      <Link to="/profile" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="gaming" size="sm" className="w-full">
+                          <User className="w-4 h-4 mr-2" />
+                          Profile
+                        </Button>
+                      </Link>
+                    </div>
                   </>
                 ) : (
                   <Link to="/auth" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
