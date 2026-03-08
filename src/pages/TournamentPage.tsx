@@ -424,6 +424,7 @@ const TournamentPage = () => {
     if (!myParticipant) return;
 
     setMyReady(true);
+    playReadyUp();
 
     // Broadcast ready to opponent
     readyChannelRef.current?.send({
