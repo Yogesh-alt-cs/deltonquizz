@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { 
   Trophy, Users, Crown, Swords, Calendar, Clock, Plus, 
   ArrowLeft, Loader2, Medal, ChevronRight, Zap, Trash2, Download, Play
@@ -81,6 +82,7 @@ const TournamentPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { playTick, playReadyUp, playTimeout, playGo, playCountdown } = useSoundEffects();
   
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
@@ -409,6 +411,7 @@ const TournamentPage = () => {
       .on('broadcast', { event: 'player-ready' }, (payload) => {
         if (payload.payload.participantId !== myParticipant.id) {
           setOpponentReady(true);
+          playReadyUp();
         }
       })
       .subscribe();
@@ -422,6 +425,7 @@ const TournamentPage = () => {
     if (!myParticipant) return;
 
     setMyReady(true);
+    playReadyUp();
 
     // Broadcast ready to opponent
     readyChannelRef.current?.send({
@@ -451,9 +455,13 @@ const TournamentPage = () => {
       setReadyTimeout(prev => {
         if (prev <= 1) {
           clearInterval(timer);
+          playTimeout();
           toast({ title: 'Match timed out', description: 'Opponent did not ready up in time. Match cancelled.', variant: 'destructive' });
           handleCancelReady();
           return 0;
+        }
+        if (prev <= 11) {
+          playTick();
         }
         return prev - 1;
       });
@@ -474,6 +482,7 @@ const TournamentPage = () => {
     if (countdown === null || countdown < 0) return;
 
     if (countdown === 0) {
+      playGo();
       // Navigate to quiz
       const match = readyMatch;
       if (!match || !selectedTournament) return;
@@ -501,6 +510,7 @@ const TournamentPage = () => {
       return;
     }
 
+    playCountdown();
     const timer = setTimeout(() => setCountdown(prev => (prev !== null ? prev - 1 : null)), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
