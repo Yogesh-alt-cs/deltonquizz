@@ -25,6 +25,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import FriendsPage from "./pages/FriendsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
