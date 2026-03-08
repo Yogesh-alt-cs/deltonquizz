@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { 
   Trophy, Users, Crown, Swords, Calendar, Clock, Plus, 
   ArrowLeft, Loader2, Medal, ChevronRight, Zap, Trash2, Download, Play
