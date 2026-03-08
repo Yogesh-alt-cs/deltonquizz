@@ -10,7 +10,7 @@ import logo from "@/assets/logo.png";
 export const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
 
   const navItems = [
     { path: "/", label: "Home", icon: Home },
