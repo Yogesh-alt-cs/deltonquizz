@@ -442,6 +442,26 @@ const TournamentPage = () => {
     }
   };
 
+  // 60-second timeout for opponent to ready up
+  useEffect(() => {
+    if (!readyMatch || countdown !== null) return;
+    if (myReady && opponentReady) return; // both ready, no need for timeout
+
+    const timer = setInterval(() => {
+      setReadyTimeout(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          toast({ title: 'Match timed out', description: 'Opponent did not ready up in time. Match cancelled.', variant: 'destructive' });
+          handleCancelReady();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [readyMatch, countdown, myReady, opponentReady]);
+
   // When both ready, start countdown
   useEffect(() => {
     if (myReady && opponentReady && countdown === null) {
