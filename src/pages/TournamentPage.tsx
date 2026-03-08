@@ -454,9 +454,13 @@ const TournamentPage = () => {
       setReadyTimeout(prev => {
         if (prev <= 1) {
           clearInterval(timer);
+          playTimeout();
           toast({ title: 'Match timed out', description: 'Opponent did not ready up in time. Match cancelled.', variant: 'destructive' });
           handleCancelReady();
           return 0;
+        }
+        if (prev <= 11) {
+          playTick();
         }
         return prev - 1;
       });
