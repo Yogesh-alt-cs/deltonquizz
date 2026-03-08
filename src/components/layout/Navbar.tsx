@@ -112,6 +112,14 @@ export const Navbar = () => {
             {!loading && (
               user ? (
                 <>
+                  {isAdmin && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm" className="h-9 border-destructive/50 text-destructive hover:bg-destructive/10">
+                        <Shield className="w-4 h-4 xl:mr-1.5" />
+                        <span className="hidden xl:inline">Admin</span>
+                      </Button>
+                    </Link>
+                  )}
                   <Link to="/dashboard">
                     <Button variant="outline" size="sm" className="h-9">
                       <LayoutDashboard className="w-4 h-4 xl:mr-1.5" />
