@@ -614,6 +614,7 @@ export type Database = {
           daily_streak: number | null
           highest_streak: number | null
           id: string
+          is_admin: boolean | null
           last_activity_date: string | null
           level: number | null
           multiplayer_games: number | null
@@ -635,6 +636,7 @@ export type Database = {
           daily_streak?: number | null
           highest_streak?: number | null
           id: string
+          is_admin?: boolean | null
           last_activity_date?: string | null
           level?: number | null
           multiplayer_games?: number | null
@@ -656,6 +658,7 @@ export type Database = {
           daily_streak?: number | null
           highest_streak?: number | null
           id?: string
+          is_admin?: boolean | null
           last_activity_date?: string | null
           level?: number | null
           multiplayer_games?: number | null
