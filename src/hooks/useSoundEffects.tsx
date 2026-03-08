@@ -10,6 +10,10 @@ const SOUNDS = {
   click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
   countdown: 'https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3',
   victory: 'https://assets.mixkit.co/active_storage/sfx/1996/1996-preview.mp3',
+  tick: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+  readyUp: 'https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3',
+  timeout: 'https://assets.mixkit.co/active_storage/sfx/2028/2028-preview.mp3',
+  go: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
 };
 
 export function useSoundEffects() {
