@@ -402,6 +402,7 @@ const TournamentPage = () => {
     setMyReady(false);
     setOpponentReady(false);
     setCountdown(null);
+    setReadyTimeout(60);
 
     // Subscribe to a broadcast channel for this match's ready state
     const channel = supabase.channel(`match-ready-${match.id}`)
