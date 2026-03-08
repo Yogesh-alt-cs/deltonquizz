@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard, Swords, GraduationCap, Home, UserPlus } from "lucide-react";
+import { Trophy, BookOpen, User, Menu, X, Plus, Users, LogIn, LayoutDashboard, Swords, GraduationCap, Home, UserPlus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
