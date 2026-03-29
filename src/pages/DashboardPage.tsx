@@ -233,11 +233,13 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
             { label: 'Total Score', value: stats?.total_score?.toLocaleString() || 0, icon: Trophy, color: 'text-warning' },
             { label: 'Quizzes Played', value: stats?.total_quizzes_played || 0, icon: BookOpen, color: 'text-primary' },
-            { label: 'Best Streak', value: stats?.highest_streak || 0, icon: Flame, color: 'text-destructive' },
+            { label: 'Daily Streak', value: `🔥 ${stats?.daily_streak || 0}`, icon: Flame, color: 'text-destructive' },
+            { label: 'Best Streak', value: stats?.highest_streak || 0, icon: Zap, color: 'text-warning' },
+            { label: 'Level', value: `Lv. ${stats?.level || 1}`, icon: Star, color: 'text-primary' },
             { label: 'Global Rank', value: stats?.rank ? `#${stats.rank}` : '-', icon: TrendingUp, color: 'text-success' },
           ].map((stat, index) => (
             <motion.div
