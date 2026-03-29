@@ -66,6 +66,7 @@ const App = () => {
                 <Route path="/friends" element={<FriendsPage />} />
                 <Route path="/recommendations" element={<RecommendationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/review" element={<ReviewAnswersPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
