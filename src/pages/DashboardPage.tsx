@@ -35,6 +35,9 @@ interface UserStats {
   total_quizzes_played: number;
   highest_streak: number;
   rank: number;
+  daily_streak: number;
+  xp: number;
+  level: number;
 }
 
 const iconMap: Record<string, any> = {
@@ -74,7 +77,7 @@ const DashboardPage = () => {
       // Fetch user profile stats
       const { data: profile } = await supabase
         .from('profiles')
-        .select('total_score, total_quizzes_played, highest_streak')
+        .select('total_score, total_quizzes_played, highest_streak, daily_streak, xp, level')
         .eq('id', user.id)
         .single();
 
@@ -90,6 +93,9 @@ const DashboardPage = () => {
         total_quizzes_played: profile?.total_quizzes_played || 0,
         highest_streak: profile?.highest_streak || 0,
         rank: leaderboard?.rank || 0,
+        daily_streak: profile?.daily_streak || 0,
+        xp: profile?.xp || 0,
+        level: profile?.level || 1,
       });
 
       // Fetch all achievements
