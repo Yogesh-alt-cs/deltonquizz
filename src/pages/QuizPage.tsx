@@ -742,7 +742,6 @@ const QuizPage = () => {
                       <Home className="w-5 h-5 mr-2" />Categories
                     </Button>
                   )}
-                  )}
                 </div>
               </div>
             </motion.div>
