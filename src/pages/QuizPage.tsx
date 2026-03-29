@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
-import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp, Eye } from "lucide-react";
 import { saveQuizHistory } from "@/utils/saveQuizHistory";
 interface Question {
   id: string;
@@ -695,6 +695,33 @@ const QuizPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  <Button variant="outline" size="lg" onClick={() => {
+                    const reviewData = {
+                      quizTitle,
+                      score,
+                      correctAnswers,
+                      totalQuestions: questions.length,
+                      maxStreak,
+                      timeTaken: Math.floor((Date.now() - ((window as any).__quizStartTime || Date.now())) / 1000),
+                      answers: questions.map((q, i) => {
+                        const ua = userAnswers.find(a => a.questionIndex === i);
+                        return {
+                          questionIndex: i,
+                          questionText: q.question_text,
+                          options: q.options,
+                          selectedAnswer: ua?.selectedAnswer ?? null,
+                          correctAnswer: q.correct_answer,
+                          isCorrect: ua?.isCorrect ?? false,
+                          explanation: q.explanation,
+                          timeTaken: ua?.timeTaken ?? 0,
+                        };
+                      }),
+                    };
+                    sessionStorage.setItem('quizReviewData', JSON.stringify(reviewData));
+                    navigate('/review');
+                  }}>
+                    <Eye className="w-5 h-5 mr-2" />Review Answers
+                  </Button>
                   {tournamentId ? (
                     <Button variant="gaming" size="lg" onClick={() => navigate(`/tournament/${tournamentId}`)}>
                       <Trophy className="w-5 h-5 mr-2" />Back to Tournament
@@ -714,6 +741,7 @@ const QuizPage = () => {
                     <Button variant="outline" size="lg" onClick={() => navigate("/categories")}>
                       <Home className="w-5 h-5 mr-2" />Categories
                     </Button>
+                  )}
                   )}
                 </div>
               </div>
