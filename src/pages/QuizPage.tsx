@@ -526,6 +526,7 @@ const QuizPage = () => {
       setSelectedAnswer(null);
       setIsAnswered(false);
       setTimeLeft(30);
+      setQuestionStartTime(Date.now());
     }
   };
 
