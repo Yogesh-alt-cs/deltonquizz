@@ -64,6 +64,8 @@ const QuizPage = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [xpResult, setXpResult] = useState<XPResult | null>(null);
+  const [userAnswers, setUserAnswers] = useState<{ questionIndex: number; selectedAnswer: number | null; isCorrect: boolean; timeTaken: number }[]>([]);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   useEffect(() => {
     const fetchQuiz = async () => {
