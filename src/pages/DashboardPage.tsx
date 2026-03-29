@@ -121,27 +121,24 @@ const DashboardPage = () => {
         setAchievements(achievementsWithStatus);
       }
 
-      // Fetch recent quiz sessions
-      const { data: sessions } = await supabase
-        .from('quiz_sessions')
-        .select('id, quiz_id, score, max_streak, completed_at')
+      // Fetch recent quiz history (unified table)
+      const { data: historyRecords } = await supabase
+        .from('quiz_history')
+        .select('id, quiz_id, score, max_streak, created_at, quiz_title')
         .eq('user_id', user.id)
         .eq('completed', true)
-        .order('completed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10);
 
-      if (sessions && sessions.length > 0) {
-        const quizIds = [...new Set(sessions.map(s => s.quiz_id))];
-        const { data: quizzes } = await supabase
-          .from('quizzes')
-          .select('id, title')
-          .in('id', quizIds);
-
-        const sessionsWithTitles = sessions.map(session => ({
-          ...session,
-          quiz_title: quizzes?.find(q => q.id === session.quiz_id)?.title || 'Unknown Quiz',
-        }));
-        setRecentQuizzes(sessionsWithTitles);
+      if (historyRecords && historyRecords.length > 0) {
+        setRecentQuizzes(historyRecords.map(h => ({
+          id: h.id,
+          quiz_id: h.quiz_id || '',
+          score: h.score,
+          max_streak: h.max_streak || 0,
+          completed_at: h.created_at,
+          quiz_title: h.quiz_title || 'Quiz',
+        })));
       }
 
       // Check and award new achievements
