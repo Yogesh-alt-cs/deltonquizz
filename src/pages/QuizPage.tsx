@@ -161,6 +161,8 @@ const QuizPage = () => {
   const handleTimeout = useCallback(() => {
     if (isAnswered) return;
     setIsAnswered(true);
+    const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+    setUserAnswers(prev => [...prev, { questionIndex: currentQuestionIndex, selectedAnswer: null, isCorrect: false, timeTaken }]);
     setLives((prev) => prev - 1);
     setStreak(0);
     setCombo(1);
@@ -172,7 +174,7 @@ const QuizPage = () => {
     } else {
       setTimeout(goToNextQuestion, 2000);
     }
-  }, [isAnswered, lives, soundEnabled, sounds]);
+  }, [isAnswered, lives, soundEnabled, sounds, questionStartTime, currentQuestionIndex]);
 
   const handleAnswerSelect = (index: number) => {
     if (isAnswered || gameState !== "playing") return;
@@ -180,6 +182,8 @@ const QuizPage = () => {
     setIsAnswered(true);
     const currentQuestion = questions[currentQuestionIndex];
     const isCorrect = index === currentQuestion.correct_answer;
+    const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+    setUserAnswers(prev => [...prev, { questionIndex: currentQuestionIndex, selectedAnswer: index, isCorrect, timeTaken }]);
 
     if (isCorrect) {
       const timeBonus = Math.floor(timeLeft * 2);
