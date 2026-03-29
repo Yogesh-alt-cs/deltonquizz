@@ -18,7 +18,7 @@ const SOUNDS = {
 
 export function useSoundEffects() {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
-  const timeoutRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const timeoutRefs = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
   const soundEnabled = useRef(true);
 
   const playSound = useCallback((soundName: keyof typeof SOUNDS, maxDuration?: number) => {
