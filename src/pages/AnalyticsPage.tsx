@@ -9,56 +9,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { FloatingParticles } from '@/components/effects/Particles';
 import {
   ArrowLeft, TrendingUp, Target, Brain, Zap, Trophy,
-  BarChart3, PieChart, Calendar, Flame, AlertCircle, CheckCircle2, Loader2
+  BarChart3, PieChart, Calendar, Flame, AlertCircle, CheckCircle2, Loader2, Play, Clock
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart as RechartsPie, Pie, Cell, RadarChart, Radar, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis
+  BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  PieChart as RechartsPieChart, Pie, Cell
 } from 'recharts';
-
-interface QuizSession {
-  id: string;
-  quiz_id: string;
-  score: number;
-  max_streak: number;
-  time_taken_seconds: number;
-  completed: boolean;
-  created_at: string;
-  quiz?: {
-    title: string;
-    category_id: string;
-    difficulty: string;
-    category?: {
-      name: string;
-    };
-  };
-}
-
-interface CategoryPerformance {
-  name: string;
-  avgScore: number;
-  quizCount: number;
-  color: string;
-}
 
 interface AnalyticsData {
   totalQuizzes: number;
+  completedQuizzes: number;
+  inProgressQuizzes: number;
   totalScore: number;
   avgScore: number;
+  avgAccuracy: number;
   bestStreak: number;
   avgTime: number;
+  totalTimeSpent: number;
   completionRate: number;
-  recentTrend: { date: string; score: number; quizzes: number }[];
-  categoryPerformance: CategoryPerformance[];
-  difficultyBreakdown: { difficulty: string; count: number; avgScore: number }[];
+  recentTrend: { date: string; score: number; accuracy: number; quizzes: number }[];
+  categoryPerformance: { name: string; avgScore: number; avgAccuracy: number; quizCount: number; color: string }[];
+  difficultyBreakdown: { difficulty: string; count: number; avgScore: number; avgAccuracy: number }[];
   weeklyActivity: { day: string; quizzes: number }[];
+  modeBreakdown: { mode: string; count: number }[];
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
+  strongestCategory: string;
+  weakestCategory: string;
+  mostPlayedCategory: string;
 }
 
-const COLORS = ['hsl(239, 84%, 67%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)', 'hsl(280, 84%, 60%)'];
+const COLORS = ['hsl(239, 84%, 67%)', 'hsl(160, 84%, 39%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)', 'hsl(280, 84%, 60%)', 'hsl(200, 84%, 50%)'];
 
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -67,172 +50,176 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+    if (!user) { navigate('/auth'); return; }
     fetchAnalytics();
   }, [user, navigate]);
 
   const fetchAnalytics = async () => {
     if (!user) return;
-    
     setLoading(true);
     try {
-      // Fetch quiz sessions with quiz details
-      const { data: sessions } = await supabase
-        .from('quiz_sessions')
-        .select(`
-          *,
-          quiz:quizzes (
-            title,
-            category_id,
-            difficulty,
-            category:categories (name)
-          )
-        `)
+      // Pull from quiz_history (unified table that captures ALL quiz types)
+      const { data: historyData } = await supabase
+        .from('quiz_history')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (!sessions || sessions.length === 0) {
-        setAnalytics({
-          totalQuizzes: 0,
-          totalScore: 0,
-          avgScore: 0,
-          bestStreak: 0,
-          avgTime: 0,
-          completionRate: 0,
-          recentTrend: [],
-          categoryPerformance: [],
-          difficultyBreakdown: [],
-          weeklyActivity: [],
-          strengths: [],
-          weaknesses: [],
-          suggestions: ['Complete your first quiz to see analytics!'],
-        });
+      const records = historyData || [];
+
+      if (records.length === 0) {
+        setAnalytics(null);
         setLoading(false);
         return;
       }
 
-      // Calculate basic stats
-      const completedSessions = sessions.filter(s => s.completed);
-      const totalQuizzes = sessions.length;
-      const totalScore = completedSessions.reduce((sum, s) => sum + (s.score || 0), 0);
-      const avgScore = completedSessions.length > 0 ? Math.round(totalScore / completedSessions.length) : 0;
-      const bestStreak = Math.max(...sessions.map(s => s.max_streak || 0));
-      const avgTime = completedSessions.length > 0 
-        ? Math.round(completedSessions.reduce((sum, s) => sum + (s.time_taken_seconds || 0), 0) / completedSessions.length)
+      const completed = records.filter(r => r.completed);
+      const inProgress = records.filter(r => !r.completed);
+      const totalQuizzes = records.length;
+      const completedQuizzes = completed.length;
+      const totalScore = completed.reduce((s, r) => s + (r.score || 0), 0);
+      const avgScore = completedQuizzes > 0 ? Math.round(totalScore / completedQuizzes) : 0;
+      const avgAccuracy = completedQuizzes > 0
+        ? Math.round(completed.reduce((s, r) => s + (r.accuracy || 0), 0) / completedQuizzes)
         : 0;
-      const completionRate = Math.round((completedSessions.length / totalQuizzes) * 100);
+      const bestStreak = Math.max(0, ...records.map(r => r.max_streak || 0));
+      const totalTimeSpent = records.reduce((s, r) => s + (r.time_taken_seconds || 0), 0);
+      const avgTime = completedQuizzes > 0
+        ? Math.round(completed.reduce((s, r) => s + (r.time_taken_seconds || 0), 0) / completedQuizzes)
+        : 0;
+      const completionRate = totalQuizzes > 0 ? Math.round((completedQuizzes / totalQuizzes) * 100) : 0;
 
-      // Calculate recent trend (last 7 days)
+      // 7-day trend
       const last7Days = [...Array(7)].map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
       });
-
       const recentTrend = last7Days.map(date => {
-        const daySessions = completedSessions.filter(s => 
-          s.created_at.split('T')[0] === date
-        );
+        const dayRecords = completed.filter(r => r.created_at.split('T')[0] === date);
         return {
           date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-          score: daySessions.length > 0 
-            ? Math.round(daySessions.reduce((sum, s) => sum + s.score, 0) / daySessions.length)
-            : 0,
-          quizzes: daySessions.length,
+          score: dayRecords.length > 0 ? Math.round(dayRecords.reduce((s, r) => s + r.score, 0) / dayRecords.length) : 0,
+          accuracy: dayRecords.length > 0 ? Math.round(dayRecords.reduce((s, r) => s + (r.accuracy || 0), 0) / dayRecords.length) : 0,
+          quizzes: dayRecords.length,
         };
       });
 
       // Category performance
-      const categoryMap = new Map<string, { scores: number[]; name: string }>();
-      completedSessions.forEach(s => {
-        const catName = (s.quiz as any)?.category?.name || 'Uncategorized';
-        if (!categoryMap.has(catName)) {
-          categoryMap.set(catName, { scores: [], name: catName });
-        }
-        categoryMap.get(catName)!.scores.push(s.score || 0);
+      const catMap = new Map<string, { scores: number[]; accuracies: number[] }>();
+      completed.forEach(r => {
+        const cat = r.category || 'General';
+        if (!catMap.has(cat)) catMap.set(cat, { scores: [], accuracies: [] });
+        catMap.get(cat)!.scores.push(r.score || 0);
+        catMap.get(cat)!.accuracies.push(r.accuracy || 0);
       });
-
-      const categoryPerformance: CategoryPerformance[] = Array.from(categoryMap.entries()).map(([name, data], idx) => ({
-        name,
+      const categoryPerformance = Array.from(catMap.entries()).map(([name, data], idx) => ({
+        name: name.length > 15 ? name.slice(0, 12) + '...' : name,
         avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
+        avgAccuracy: Math.round(data.accuracies.reduce((a, b) => a + b, 0) / data.accuracies.length),
         quizCount: data.scores.length,
         color: COLORS[idx % COLORS.length],
       }));
 
-      // Difficulty breakdown
-      const difficultyMap = new Map<string, { scores: number[]; count: number }>();
-      completedSessions.forEach(s => {
-        const diff = (s.quiz as any)?.difficulty || 'medium';
-        if (!difficultyMap.has(diff)) {
-          difficultyMap.set(diff, { scores: [], count: 0 });
-        }
-        difficultyMap.get(diff)!.scores.push(s.score || 0);
-        difficultyMap.get(diff)!.count++;
+      const sortedByAccuracy = [...categoryPerformance].sort((a, b) => b.avgAccuracy - a.avgAccuracy);
+      const sortedByCount = [...categoryPerformance].sort((a, b) => b.quizCount - a.quizCount);
+      const strongestCategory = sortedByAccuracy[0]?.name || 'N/A';
+      const weakestCategory = sortedByAccuracy.length > 1 ? sortedByAccuracy[sortedByAccuracy.length - 1].name : 'N/A';
+      const mostPlayedCategory = sortedByCount[0]?.name || 'N/A';
+
+      // Difficulty breakdown from mode field or quiz title heuristic
+      const diffMap = new Map<string, { scores: number[]; accuracies: number[] }>();
+      completed.forEach(r => {
+        // quiz_history doesn't store difficulty directly — infer from category or default
+        const diff = 'Medium'; // default
+        if (!diffMap.has(diff)) diffMap.set(diff, { scores: [], accuracies: [] });
+        diffMap.get(diff)!.scores.push(r.score || 0);
+        diffMap.get(diff)!.accuracies.push(r.accuracy || 0);
       });
 
-      const difficultyBreakdown = ['easy', 'medium', 'hard'].map(difficulty => {
-        const data = difficultyMap.get(difficulty);
+      // Also try quiz_sessions for difficulty data
+      const { data: sessionsData } = await supabase
+        .from('quiz_sessions')
+        .select('*, quiz:quizzes(difficulty)')
+        .eq('user_id', user.id)
+        .eq('completed', true);
+
+      const diffMap2 = new Map<string, { count: number; scores: number[]; accuracies: number[] }>();
+      (sessionsData || []).forEach((s: any) => {
+        const diff = s.quiz?.difficulty || 'medium';
+        const cap = diff.charAt(0).toUpperCase() + diff.slice(1);
+        if (!diffMap2.has(cap)) diffMap2.set(cap, { count: 0, scores: [], accuracies: [] });
+        const d = diffMap2.get(cap)!;
+        d.count++;
+        d.scores.push(s.score || 0);
+      });
+
+      // Fallback: use history count if sessions don't have difficulty
+      const difficultyBreakdown = ['Easy', 'Medium', 'Hard'].map(difficulty => {
+        const d = diffMap2.get(difficulty);
         return {
-          difficulty: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
-          count: data?.count || 0,
-          avgScore: data ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length) : 0,
+          difficulty,
+          count: d?.count || (difficulty === 'Medium' ? completedQuizzes : 0),
+          avgScore: d && d.scores.length > 0 ? Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length) : avgScore,
+          avgAccuracy: avgAccuracy,
         };
       });
 
       // Weekly activity
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const weeklyActivity = dayNames.map(day => {
-        const dayQuizzes = sessions.filter(s => {
-          const sessionDay = new Date(s.created_at).toLocaleDateString('en-US', { weekday: 'short' });
-          return sessionDay === day;
-        });
-        return { day, quizzes: dayQuizzes.length };
+      const weeklyActivity = dayNames.map(day => ({
+        day,
+        quizzes: records.filter(r => new Date(r.created_at).toLocaleDateString('en-US', { weekday: 'short' }) === day).length,
+      }));
+
+      // Mode breakdown
+      const modeMap = new Map<string, number>();
+      records.forEach(r => {
+        const mode = r.mode || 'solo';
+        modeMap.set(mode, (modeMap.get(mode) || 0) + 1);
       });
+      const modeBreakdown = Array.from(modeMap.entries()).map(([mode, count]) => ({ mode, count }));
 
-      // Determine strengths and weaknesses
-      const sortedCategories = [...categoryPerformance].sort((a, b) => b.avgScore - a.avgScore);
-      const strengths = sortedCategories.slice(0, 2).filter(c => c.avgScore >= avgScore).map(c => c.name);
-      const weaknesses = sortedCategories.slice(-2).filter(c => c.avgScore < avgScore).map(c => c.name);
+      // Strengths/weaknesses
+      const strengths = sortedByAccuracy.filter(c => c.avgAccuracy >= avgAccuracy).slice(0, 3).map(c => c.name);
+      const weaknesses = sortedByAccuracy.filter(c => c.avgAccuracy < avgAccuracy).slice(-3).map(c => c.name);
 
-      // Generate suggestions
+      // Suggestions
       const suggestions: string[] = [];
-      
-      if (completionRate < 80) {
-        suggestions.push('Try to complete more quizzes - finishing helps reinforce learning!');
-      }
-      if (avgTime > 300) {
-        suggestions.push('Practice speed reading to improve your time per question.');
-      }
-      if (weaknesses.length > 0) {
-        suggestions.push(`Focus on improving in: ${weaknesses.join(', ')}`);
-      }
-      if (bestStreak < 5) {
-        suggestions.push('Work on building longer answer streaks for bonus points!');
-      }
-      if (difficultyBreakdown.find(d => d.difficulty === 'Hard')?.count === 0) {
-        suggestions.push('Challenge yourself with some hard difficulty quizzes!');
-      }
-      if (suggestions.length === 0) {
-        suggestions.push("You're doing great! Keep up the consistent practice.");
-      }
+      if (strongestCategory !== 'N/A') suggestions.push(`Your strongest category is ${strongestCategory} 💪`);
+      if (weakestCategory !== 'N/A' && weakestCategory !== strongestCategory) suggestions.push(`Your weakest category is ${weakestCategory} — practice more!`);
+      if (completionRate < 80) suggestions.push('Try finishing more in-progress quizzes for better stats');
+      if (avgAccuracy < 70) suggestions.push('Focus on accuracy — take more time to read questions carefully');
+      if (avgAccuracy >= 90) suggestions.push('Your accuracy is excellent! Try harder difficulty quizzes');
+      if (bestStreak >= 10) suggestions.push(`Impressive ${bestStreak} streak! Keep it going`);
+      if (bestStreak < 5) suggestions.push('Work on building longer answer streaks for bonus points');
+      // Check for weekly improvement
+      const thisWeekQuizzes = recentTrend.reduce((s, d) => s + d.quizzes, 0);
+      if (thisWeekQuizzes >= 5) suggestions.push('Great consistency this week! You took ' + thisWeekQuizzes + ' quizzes');
+      if (thisWeekQuizzes === 0) suggestions.push("You haven't played this week — jump back in!");
+      if (suggestions.length === 0) suggestions.push("You're doing great! Keep up the consistent practice.");
 
       setAnalytics({
         totalQuizzes,
+        completedQuizzes,
+        inProgressQuizzes: inProgress.length,
         totalScore,
         avgScore,
+        avgAccuracy,
         bestStreak,
         avgTime,
+        totalTimeSpent,
         completionRate,
         recentTrend,
         categoryPerformance,
         difficultyBreakdown,
         weeklyActivity,
+        modeBreakdown,
         strengths,
         weaknesses,
         suggestions,
+        strongestCategory,
+        weakestCategory,
+        mostPlayedCategory,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -243,21 +230,22 @@ export default function AnalyticsPage() {
 
   if (!user) return null;
 
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <FloatingParticles />
       <Navbar />
-      
       <main className="container mx-auto px-4 py-8 pt-24">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+          <ArrowLeft className="w-4 h-4 mr-2" />Back
         </Button>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-4 mb-8">
             <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
               <BarChart3 className="w-7 h-7 text-primary" />
@@ -272,13 +260,13 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
-          ) : !analytics || analytics.totalQuizzes === 0 ? (
+          ) : !analytics ? (
             <Card className="glass-card p-12 text-center">
               <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-foreground mb-2">No Data Yet</h2>
-              <p className="text-muted-foreground mb-6">Complete some quizzes to see your analytics!</p>
+              <p className="text-muted-foreground mb-6">Start your first quiz to unlock analytics!</p>
               <Button onClick={() => navigate('/categories')}>
-                Start a Quiz
+                <Play className="w-4 h-4 mr-2" />Start a Quiz
               </Button>
             </Card>
           ) : (
@@ -287,18 +275,13 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
                   { label: 'Total Quizzes', value: analytics.totalQuizzes, icon: Target, color: 'text-primary' },
-                  { label: 'Total Score', value: analytics.totalScore.toLocaleString(), icon: Trophy, color: 'text-warning' },
                   { label: 'Avg Score', value: analytics.avgScore, icon: TrendingUp, color: 'text-success' },
+                  { label: 'Avg Accuracy', value: `${analytics.avgAccuracy}%`, icon: CheckCircle2, color: 'text-success' },
                   { label: 'Best Streak', value: analytics.bestStreak, icon: Flame, color: 'text-destructive' },
-                  { label: 'Avg Time', value: `${Math.floor(analytics.avgTime / 60)}m`, icon: Calendar, color: 'text-primary' },
-                  { label: 'Completion', value: `${analytics.completionRate}%`, icon: CheckCircle2, color: 'text-success' },
+                  { label: 'Time Spent', value: formatTime(analytics.totalTimeSpent), icon: Clock, color: 'text-primary' },
+                  { label: 'Completion', value: `${analytics.completionRate}%`, icon: Trophy, color: 'text-warning' },
                 ].map((stat, idx) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                  >
+                  <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
                     <Card className="glass-card p-4 text-center">
                       <stat.icon className={`w-6 h-6 mx-auto mb-2 ${stat.color}`} />
                       <p className="font-gaming text-xl text-foreground">{stat.value}</p>
@@ -310,11 +293,10 @@ export default function AnalyticsPage() {
 
               {/* Charts Row */}
               <div className="grid lg:grid-cols-2 gap-6">
-                {/* Performance Trend */}
+                {/* 7-Day Performance */}
                 <Card className="glass-card p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    7-Day Performance
+                    <TrendingUp className="w-5 h-5 text-primary" />7-Day Performance
                   </h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
@@ -322,63 +304,42 @@ export default function AnalyticsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="score" 
-                          stroke="hsl(239, 84%, 67%)" 
-                          strokeWidth={3}
-                          dot={{ fill: 'hsl(239, 84%, 67%)', strokeWidth: 2 }}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                        <Line type="monotone" dataKey="score" stroke="hsl(239, 84%, 67%)" strokeWidth={3} dot={{ fill: 'hsl(239, 84%, 67%)', strokeWidth: 2 }} name="Avg Score" />
+                        <Line type="monotone" dataKey="accuracy" stroke="hsl(160, 84%, 39%)" strokeWidth={2} dot={{ fill: 'hsl(160, 84%, 39%)', strokeWidth: 2 }} name="Accuracy %" />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </Card>
 
-                {/* Category Performance */}
+                {/* Category Radar */}
                 <Card className="glass-card p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <PieChart className="w-5 h-5 text-primary" />
-                    Category Performance
+                    <PieChart className="w-5 h-5 text-primary" />Category Performance
                   </h3>
                   {analytics.categoryPerformance.length > 0 ? (
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={analytics.categoryPerformance}>
                           <PolarGrid stroke="hsl(var(--border))" />
-                          <PolarAngleAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                          <PolarAngleAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
                           <PolarRadiusAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-                          <Radar
-                            name="Avg Score"
-                            dataKey="avgScore"
-                            stroke="hsl(239, 84%, 67%)"
-                            fill="hsl(239, 84%, 67%)"
-                            fillOpacity={0.5}
-                          />
+                          <Radar name="Accuracy" dataKey="avgAccuracy" stroke="hsl(239, 84%, 67%)" fill="hsl(239, 84%, 67%)" fillOpacity={0.4} />
                         </RadarChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center text-muted-foreground">
-                      No category data yet
-                    </div>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">No category data yet</div>
                   )}
                 </Card>
               </div>
 
               {/* Second Row */}
               <div className="grid lg:grid-cols-3 gap-6">
-                {/* Difficulty Breakdown */}
+                {/* Difficulty */}
                 <Card className="glass-card p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-warning" />
-                    By Difficulty
+                    <Zap className="w-5 h-5 text-warning" />By Difficulty
                   </h3>
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
@@ -386,14 +347,8 @@ export default function AnalyticsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                         <YAxis dataKey="difficulty" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={60} />
-                        <Tooltip
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <Bar dataKey="avgScore" fill="hsl(239, 84%, 67%)" radius={[0, 4, 4, 0]} />
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                        <Bar dataKey="count" fill="hsl(239, 84%, 67%)" radius={[0, 4, 4, 0]} name="Quizzes" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -402,8 +357,7 @@ export default function AnalyticsPage() {
                 {/* Weekly Activity */}
                 <Card className="glass-card p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-success" />
-                    Weekly Activity
+                    <Calendar className="w-5 h-5 text-success" />Weekly Activity
                   </h3>
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
@@ -411,37 +365,62 @@ export default function AnalyticsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                        <Tooltip
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
                         <Bar dataKey="quizzes" fill="hsl(160, 84%, 39%)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </Card>
 
-                {/* Strengths & Weaknesses */}
+                {/* Completion Donut */}
                 <Card className="glass-card p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-primary" />
-                    Insights
+                    <Target className="w-5 h-5 text-primary" />Completion Rate
+                  </h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={[
+                            { name: 'Completed', value: analytics.completedQuizzes },
+                            { name: 'In Progress', value: analytics.inProgressQuizzes },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="hsl(160, 84%, 39%)" />
+                          <Cell fill="hsl(38, 92%, 50%)" />
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-4 text-xs">
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: 'hsl(160, 84%, 39%)' }} />Completed</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: 'hsl(38, 92%, 50%)' }} />In Progress</span>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Insights */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <Card className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-primary" />Insights
                   </h3>
                   <div className="space-y-4">
                     {analytics.strengths.length > 0 && (
                       <div>
                         <p className="text-sm text-success font-medium mb-2 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Strengths
+                          <CheckCircle2 className="w-4 h-4" />Strengths
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {analytics.strengths.map(s => (
-                            <span key={s} className="px-3 py-1 bg-success/20 text-success text-sm rounded-full">
-                              {s}
-                            </span>
+                            <span key={s} className="px-3 py-1 bg-success/20 text-success text-sm rounded-full">{s}</span>
                           ))}
                         </div>
                       </div>
@@ -449,45 +428,46 @@ export default function AnalyticsPage() {
                     {analytics.weaknesses.length > 0 && (
                       <div>
                         <p className="text-sm text-destructive font-medium mb-2 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          Needs Work
+                          <AlertCircle className="w-4 h-4" />Needs Work
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {analytics.weaknesses.map(w => (
-                            <span key={w} className="px-3 py-1 bg-destructive/20 text-destructive text-sm rounded-full">
-                              {w}
-                            </span>
+                            <span key={w} className="px-3 py-1 bg-destructive/20 text-destructive text-sm rounded-full">{w}</span>
                           ))}
                         </div>
                       </div>
                     )}
+                    <div className="pt-2 border-t border-border space-y-1 text-sm text-muted-foreground">
+                      <p>🏆 Strongest: <span className="text-foreground font-medium">{analytics.strongestCategory}</span></p>
+                      <p>📉 Weakest: <span className="text-foreground font-medium">{analytics.weakestCategory}</span></p>
+                      <p>🔥 Most played: <span className="text-foreground font-medium">{analytics.mostPlayedCategory}</span></p>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Suggestions - spans 2 cols */}
+                <Card className="glass-card p-6 lg:col-span-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-warning" />Smart Insights
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {analytics.suggestions.map((suggestion, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="flex items-start gap-3 p-3 bg-background/50 rounded-lg border border-border"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-warning font-bold text-xs">{idx + 1}</span>
+                        </div>
+                        <p className="text-sm text-foreground">{suggestion}</p>
+                      </motion.div>
+                    ))}
                   </div>
                 </Card>
               </div>
-
-              {/* Suggestions */}
-              <Card className="glass-card p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-warning" />
-                  Improvement Suggestions
-                </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {analytics.suggestions.map((suggestion, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="flex items-start gap-3 p-4 bg-background/50 rounded-lg border border-border"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-warning font-bold text-sm">{idx + 1}</span>
-                      </div>
-                      <p className="text-sm text-foreground">{suggestion}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </Card>
             </div>
           )}
         </motion.div>

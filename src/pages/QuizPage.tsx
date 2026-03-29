@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
-import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp, Eye } from "lucide-react";
 import { saveQuizHistory } from "@/utils/saveQuizHistory";
 interface Question {
   id: string;
@@ -64,6 +64,8 @@ const QuizPage = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [xpResult, setXpResult] = useState<XPResult | null>(null);
+  const [userAnswers, setUserAnswers] = useState<{ questionIndex: number; selectedAnswer: number | null; isCorrect: boolean; timeTaken: number }[]>([]);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -159,6 +161,8 @@ const QuizPage = () => {
   const handleTimeout = useCallback(() => {
     if (isAnswered) return;
     setIsAnswered(true);
+    const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+    setUserAnswers(prev => [...prev, { questionIndex: currentQuestionIndex, selectedAnswer: null, isCorrect: false, timeTaken }]);
     setLives((prev) => prev - 1);
     setStreak(0);
     setCombo(1);
@@ -170,7 +174,7 @@ const QuizPage = () => {
     } else {
       setTimeout(goToNextQuestion, 2000);
     }
-  }, [isAnswered, lives, soundEnabled, sounds]);
+  }, [isAnswered, lives, soundEnabled, sounds, questionStartTime, currentQuestionIndex]);
 
   const handleAnswerSelect = (index: number) => {
     if (isAnswered || gameState !== "playing") return;
@@ -178,6 +182,8 @@ const QuizPage = () => {
     setIsAnswered(true);
     const currentQuestion = questions[currentQuestionIndex];
     const isCorrect = index === currentQuestion.correct_answer;
+    const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+    setUserAnswers(prev => [...prev, { questionIndex: currentQuestionIndex, selectedAnswer: index, isCorrect, timeTaken }]);
 
     if (isCorrect) {
       const timeBonus = Math.floor(timeLeft * 2);
@@ -520,6 +526,7 @@ const QuizPage = () => {
       setSelectedAnswer(null);
       setIsAnswered(false);
       setTimeLeft(30);
+      setQuestionStartTime(Date.now());
     }
   };
 
@@ -537,6 +544,8 @@ const QuizPage = () => {
     setShowConfetti(false);
     setCorrectAnswers(0);
     setXpResult(null);
+    setUserAnswers([]);
+    setQuestionStartTime(Date.now());
     (window as any).__quizStartTime = Date.now();
   };
 
@@ -686,6 +695,33 @@ const QuizPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  <Button variant="outline" size="lg" onClick={() => {
+                    const reviewData = {
+                      quizTitle,
+                      score,
+                      correctAnswers,
+                      totalQuestions: questions.length,
+                      maxStreak,
+                      timeTaken: Math.floor((Date.now() - ((window as any).__quizStartTime || Date.now())) / 1000),
+                      answers: questions.map((q, i) => {
+                        const ua = userAnswers.find(a => a.questionIndex === i);
+                        return {
+                          questionIndex: i,
+                          questionText: q.question_text,
+                          options: q.options,
+                          selectedAnswer: ua?.selectedAnswer ?? null,
+                          correctAnswer: q.correct_answer,
+                          isCorrect: ua?.isCorrect ?? false,
+                          explanation: q.explanation,
+                          timeTaken: ua?.timeTaken ?? 0,
+                        };
+                      }),
+                    };
+                    sessionStorage.setItem('quizReviewData', JSON.stringify(reviewData));
+                    navigate('/review');
+                  }}>
+                    <Eye className="w-5 h-5 mr-2" />Review Answers
+                  </Button>
                   {tournamentId ? (
                     <Button variant="gaming" size="lg" onClick={() => navigate(`/tournament/${tournamentId}`)}>
                       <Trophy className="w-5 h-5 mr-2" />Back to Tournament

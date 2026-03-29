@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Trophy, Star, Flame, Zap, Target, Award, Medal, Rocket, Users, Crown,
-  Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3
+  Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3, Calendar
 } from "lucide-react";
 
 interface Achievement {
@@ -35,6 +35,9 @@ interface UserStats {
   total_quizzes_played: number;
   highest_streak: number;
   rank: number;
+  daily_streak: number;
+  xp: number;
+  level: number;
 }
 
 const iconMap: Record<string, any> = {
@@ -74,7 +77,7 @@ const DashboardPage = () => {
       // Fetch user profile stats
       const { data: profile } = await supabase
         .from('profiles')
-        .select('total_score, total_quizzes_played, highest_streak')
+        .select('total_score, total_quizzes_played, highest_streak, daily_streak, xp, level')
         .eq('id', user.id)
         .single();
 
@@ -90,6 +93,9 @@ const DashboardPage = () => {
         total_quizzes_played: profile?.total_quizzes_played || 0,
         highest_streak: profile?.highest_streak || 0,
         rank: leaderboard?.rank || 0,
+        daily_streak: profile?.daily_streak || 0,
+        xp: profile?.xp || 0,
+        level: profile?.level || 1,
       });
 
       // Fetch all achievements
@@ -115,27 +121,24 @@ const DashboardPage = () => {
         setAchievements(achievementsWithStatus);
       }
 
-      // Fetch recent quiz sessions
-      const { data: sessions } = await supabase
-        .from('quiz_sessions')
-        .select('id, quiz_id, score, max_streak, completed_at')
+      // Fetch recent quiz history (unified table)
+      const { data: historyRecords } = await supabase
+        .from('quiz_history')
+        .select('id, quiz_id, score, max_streak, created_at, quiz_title')
         .eq('user_id', user.id)
         .eq('completed', true)
-        .order('completed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10);
 
-      if (sessions && sessions.length > 0) {
-        const quizIds = [...new Set(sessions.map(s => s.quiz_id))];
-        const { data: quizzes } = await supabase
-          .from('quizzes')
-          .select('id, title')
-          .in('id', quizIds);
-
-        const sessionsWithTitles = sessions.map(session => ({
-          ...session,
-          quiz_title: quizzes?.find(q => q.id === session.quiz_id)?.title || 'Unknown Quiz',
-        }));
-        setRecentQuizzes(sessionsWithTitles);
+      if (historyRecords && historyRecords.length > 0) {
+        setRecentQuizzes(historyRecords.map(h => ({
+          id: h.id,
+          quiz_id: h.quiz_id || '',
+          score: h.score,
+          max_streak: h.max_streak || 0,
+          completed_at: h.created_at,
+          quiz_title: h.quiz_title || 'Quiz',
+        })));
       }
 
       // Check and award new achievements
@@ -227,11 +230,13 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
             { label: 'Total Score', value: stats?.total_score?.toLocaleString() || 0, icon: Trophy, color: 'text-warning' },
             { label: 'Quizzes Played', value: stats?.total_quizzes_played || 0, icon: BookOpen, color: 'text-primary' },
-            { label: 'Best Streak', value: stats?.highest_streak || 0, icon: Flame, color: 'text-destructive' },
+            { label: 'Daily Streak', value: `🔥 ${stats?.daily_streak || 0}`, icon: Flame, color: 'text-destructive' },
+            { label: 'Best Streak', value: stats?.highest_streak || 0, icon: Zap, color: 'text-warning' },
+            { label: 'Level', value: `Lv. ${stats?.level || 1}`, icon: Star, color: 'text-primary' },
             { label: 'Global Rank', value: stats?.rank ? `#${stats.rank}` : '-', icon: TrendingUp, color: 'text-success' },
           ].map((stat, index) => (
             <motion.div

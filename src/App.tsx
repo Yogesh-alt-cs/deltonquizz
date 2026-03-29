@@ -26,6 +26,7 @@ import FriendsPage from "./pages/FriendsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
+import ReviewAnswersPage from "./pages/ReviewAnswersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => {
                 <Route path="/friends" element={<FriendsPage />} />
                 <Route path="/recommendations" element={<RecommendationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/review" element={<ReviewAnswersPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

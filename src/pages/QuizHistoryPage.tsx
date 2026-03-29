@@ -4,15 +4,16 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Navbar } from '@/components/layout/Navbar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   History, Trophy, Clock, Target, Zap, ArrowLeft, 
-  Play, Calendar, Eye, RotateCcw, Loader2 
+  Play, Calendar, Eye, RotateCcw, Loader2, BookOpen, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface QuizSession {
+interface HistoryEntry {
   id: string;
   quiz_id: string;
   score: number;
@@ -21,82 +22,66 @@ interface QuizSession {
   completed_at: string | null;
   created_at: string;
   time_taken_seconds: number;
-  current_question: number;
-  mode?: string;
-  quiz_title?: string;
-  category?: string;
-  total_questions?: number;
-  correct_answers?: number;
-  accuracy?: number;
-  quiz?: {
-    title: string;
-    difficulty: string | null;
-    category_id: string | null;
-  };
+  mode: string;
+  quiz_title: string;
+  category: string | null;
+  total_questions: number;
+  correct_answers: number;
+  accuracy: number;
+  status: 'completed' | 'in_progress' | 'abandoned';
 }
 
 export default function QuizHistoryPage() {
-  const [sessions, setSessions] = useState<QuizSession[]>([]);
+  const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'completed' | 'in_progress' | 'abandoned'>('all');
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+    if (!user) { navigate('/auth'); return; }
     fetchHistory();
   }, [user, navigate]);
 
   const fetchHistory = async () => {
     if (!user) return;
 
-    const { data: sessionsData } = await supabase
-      .from('quiz_sessions')
-      .select(`*, quiz:quizzes (title, difficulty, category_id)`)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
+    // Fetch from unified quiz_history table
     const { data: historyData } = await supabase
       .from('quiz_history')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
-    const historyAsSessions: QuizSession[] = (historyData || []).map((h: any) => ({
-      id: h.id,
-      quiz_id: h.quiz_id || '',
-      score: h.score,
-      max_streak: h.max_streak || 0,
-      completed: h.completed,
-      completed_at: h.created_at,
-      created_at: h.created_at,
-      time_taken_seconds: h.time_taken_seconds,
-      current_question: h.total_questions || 0,
-      mode: h.mode,
-      quiz_title: h.quiz_title,
-      category: h.category,
-      total_questions: h.total_questions,
-      correct_answers: h.correct_answers,
-      accuracy: h.accuracy,
-    }));
+    const mapped: HistoryEntry[] = (historyData || []).map((h: any) => {
+      // Determine status: completed, in_progress, or abandoned
+      let status: 'completed' | 'in_progress' | 'abandoned' = 'completed';
+      if (!h.completed) {
+        const created = new Date(h.created_at);
+        const hoursAgo = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+        status = hoursAgo > 24 ? 'abandoned' : 'in_progress';
+      }
+      return {
+        id: h.id,
+        quiz_id: h.quiz_id || '',
+        score: h.score,
+        max_streak: h.max_streak || 0,
+        completed: h.completed,
+        completed_at: h.created_at,
+        created_at: h.created_at,
+        time_taken_seconds: h.time_taken_seconds,
+        mode: h.mode || 'solo',
+        quiz_title: h.quiz_title || 'Quiz',
+        category: h.category,
+        total_questions: h.total_questions || 0,
+        correct_answers: h.correct_answers || 0,
+        accuracy: h.accuracy || 0,
+        status,
+      };
+    });
 
-    const allSessions = [...(sessionsData || []), ...historyAsSessions];
-    allSessions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    const deduped: QuizSession[] = [];
-    for (const s of allSessions) {
-      const isDupe = deduped.some(d =>
-        d.quiz_id === s.quiz_id &&
-        Math.abs(new Date(d.created_at).getTime() - new Date(s.created_at).getTime()) < 5000
-      );
-      if (!isDupe) deduped.push(s);
-    }
-
-    setSessions(deduped.slice(0, 100));
+    setEntries(mapped);
     setLoading(false);
   };
 
@@ -107,18 +92,26 @@ export default function QuizHistoryPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStatusBadge = (session: QuizSession) => {
-    if (session.completed) {
-      return <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success font-medium">Completed</span>;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success font-medium">Completed</span>;
+      case 'in_progress':
+        return <span className="text-xs px-2 py-0.5 rounded-full bg-warning/20 text-warning font-medium">In Progress</span>;
+      case 'abandoned':
+        return <span className="text-xs px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground font-medium">Abandoned</span>;
+      default:
+        return null;
     }
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-warning/20 text-warning font-medium">In Progress</span>;
   };
 
-  const getScoreDisplay = (session: QuizSession) => {
-    if (session.correct_answers != null && session.total_questions) {
-      return `${session.correct_answers}/${session.total_questions}`;
-    }
-    return `${session.score} pts`;
+  const filtered = entries.filter(e => filter === 'all' || e.status === filter);
+
+  const counts = {
+    all: entries.length,
+    completed: entries.filter(e => e.status === 'completed').length,
+    in_progress: entries.filter(e => e.status === 'in_progress').length,
+    abandoned: entries.filter(e => e.status === 'abandoned').length,
   };
 
   if (!user) return null;
@@ -128,88 +121,106 @@ export default function QuizHistoryPage() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 pt-24">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+          <ArrowLeft className="w-4 h-4 mr-2" />Back
         </Button>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-6">
             <History className="w-8 h-8 text-primary" />
             <h1 className="text-3xl font-bold font-display text-foreground">Quiz History</h1>
           </div>
+
+          {/* Filter Tabs */}
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="mb-6">
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+              <TabsTrigger value="completed">Completed ({counts.completed})</TabsTrigger>
+              <TabsTrigger value="in_progress">In Progress ({counts.in_progress})</TabsTrigger>
+              <TabsTrigger value="abandoned">Abandoned ({counts.abandoned})</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : sessions.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <Card className="glass-card p-8 text-center">
               <History className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">No Quiz History</h2>
-              <p className="text-muted-foreground mb-6">You haven't completed any quizzes yet. Start playing to build your history!</p>
-              <Button variant="gaming" onClick={() => navigate('/categories')}>
-                <Play className="w-4 h-4 mr-2" />
-                Start a Quiz
-              </Button>
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                {filter === 'all' ? 'No Quiz History' : `No ${filter.replace('_', ' ')} quizzes`}
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                {filter === 'all' ? "Start playing to build your history!" : "Try a different filter."}
+              </p>
+              {filter === 'all' && (
+                <Button variant="gaming" onClick={() => navigate('/categories')}>
+                  <Play className="w-4 h-4 mr-2" />Start a Quiz
+                </Button>
+              )}
             </Card>
           ) : (
             <div className="space-y-3">
-              {sessions.map((session, index) => (
-                <motion.div key={session.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.03 }}>
+              {filtered.map((entry, index) => (
+                <motion.div key={entry.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.03 }}>
                   <Card className="glass-card p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${session.completed ? 'bg-success/20' : 'bg-warning/20'}`}>
-                        {session.completed ? <Trophy className="w-6 h-6 text-success" /> : <Target className="w-6 h-6 text-warning" />}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                        entry.status === 'completed' ? 'bg-success/20' : entry.status === 'in_progress' ? 'bg-warning/20' : 'bg-muted/50'
+                      }`}>
+                        {entry.status === 'completed' ? <Trophy className="w-6 h-6 text-success" /> :
+                         entry.status === 'in_progress' ? <Target className="w-6 h-6 text-warning" /> :
+                         <AlertTriangle className="w-6 h-6 text-muted-foreground" />}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-foreground truncate">
-                            {session.quiz_title || session.quiz?.title || 'Quiz'}
-                          </h3>
-                          {session.category && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground">{session.category}</span>
+                          <h3 className="font-semibold text-foreground truncate">{entry.quiz_title}</h3>
+                          {entry.category && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground">{entry.category}</span>
                           )}
-                          {session.mode && session.mode !== 'solo' && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize">{session.mode}</span>
+                          {entry.mode !== 'solo' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize">{entry.mode}</span>
                           )}
-                          {getStatusBadge(session)}
+                          {getStatusBadge(entry.status)}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {format(new Date(session.completed_at || session.created_at), 'MMM d, yyyy h:mm a')}
+                            {format(new Date(entry.created_at), 'MMM d, yyyy h:mm a')}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {formatDuration(session.time_taken_seconds)}
+                            {formatDuration(entry.time_taken_seconds)}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-4 shrink-0">
                         <div className="text-right">
-                          <div className="text-lg font-bold text-primary">{getScoreDisplay(session)}</div>
+                          <div className="text-lg font-bold text-primary">
+                            {entry.total_questions > 0 ? `${entry.correct_answers}/${entry.total_questions}` : `${entry.score} pts`}
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
                             <Zap className="w-3 h-3 text-warning" />
-                            <span>{session.max_streak} streak</span>
+                            <span>{entry.max_streak} streak</span>
                           </div>
                         </div>
 
                         <div className="flex gap-1">
-                          {session.completed ? (
+                          {entry.status === 'completed' ? (
                             <>
-                              <Button size="sm" variant="ghost" onClick={() => navigate(`/quiz-activity/${session.quiz_id}`)} title="View Results">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => navigate(`/quiz/${session.quiz_id}`)} title="Play Again">
+                              <Button size="sm" variant="ghost" onClick={() => navigate(`/quiz/${entry.quiz_id}`)} title="Play Again">
                                 <RotateCcw className="w-4 h-4" />
                               </Button>
                             </>
+                          ) : entry.status === 'in_progress' ? (
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/quiz/${entry.quiz_id}`)} title="Resume">
+                              <Play className="w-4 h-4 mr-1" />Resume
+                            </Button>
                           ) : (
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/quiz/${session.quiz_id}`)} title="Resume">
-                              <Play className="w-4 h-4 mr-1" />
-                              Resume
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/quiz/${entry.quiz_id}`)} title="Restart">
+                              <RotateCcw className="w-4 h-4 mr-1" />Restart
                             </Button>
                           )}
                         </div>
