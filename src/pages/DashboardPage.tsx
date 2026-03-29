@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Trophy, Star, Flame, Zap, Target, Award, Medal, Rocket, Users, Crown,
-  Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3
+  Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3, Calendar
 } from "lucide-react";
 
 interface Achievement {
