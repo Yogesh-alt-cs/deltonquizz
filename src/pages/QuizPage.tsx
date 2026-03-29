@@ -544,6 +544,8 @@ const QuizPage = () => {
     setShowConfetti(false);
     setCorrectAnswers(0);
     setXpResult(null);
+    setUserAnswers([]);
+    setQuestionStartTime(Date.now());
     (window as any).__quizStartTime = Date.now();
   };
 
