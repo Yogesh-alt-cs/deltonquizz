@@ -8,6 +8,7 @@ import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
 import { CategorySidebar } from "@/components/quiz/CategorySidebar";
+import { DailyChallenge } from "@/components/quiz/DailyChallenge";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
