@@ -44,11 +44,14 @@ const QuizPage = () => {
   const urlDifficulty = searchParams.get('difficulty') || 'medium';
   const customTopic = searchParams.get('topic');
   const questionCount = parseInt(searchParams.get('questionCount') || '30', 10);
+  const isDaily = searchParams.get('daily') === 'true';
   
   // Tournament context params
   const tournamentId = searchParams.get('tournamentId');
   const matchId = searchParams.get('matchId');
   const participantId = searchParams.get('participantId');
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedState, setSavedState] = useState<ReturnType<typeof loadQuizState>>(null);
   
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
