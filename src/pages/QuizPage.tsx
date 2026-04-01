@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
 import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp, Eye } from "lucide-react";
 import { saveQuizHistory } from "@/utils/saveQuizHistory";
+import { saveQuizState, loadQuizState, clearQuizState } from "@/utils/quizStateManager";
+
 interface Question {
   id: string;
   question_text: string;
@@ -20,6 +22,7 @@ interface Question {
   correct_answer: number;
   explanation: string | null;
   points: number;
+  image_url?: string;
 }
 
 interface XPResult {
