@@ -307,6 +307,11 @@ const QuizPage = () => {
       breakdown.push({ label: "Perfect game!", amount: 100 });
     }
 
+    // Daily challenge bonus
+    if (isDaily && completed) {
+      breakdown.push({ label: "Daily challenge bonus", amount: 75 });
+    }
+
     const totalXP = breakdown.reduce((sum, item) => sum + item.amount, 0);
 
     try {
