@@ -276,6 +276,11 @@ const DashboardPage = () => {
           </Button>
         </div>
 
+        {/* Daily Challenge */}
+        <div className="mb-8 max-w-md">
+          <DailyChallenge />
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Achievements */}
           <motion.div
