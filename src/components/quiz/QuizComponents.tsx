@@ -75,13 +75,15 @@ interface QuestionCardProps {
   questionNumber: number;
   totalQuestions: number;
   category: string;
+  imageUrl?: string;
 }
 
 export const QuestionCard = ({
   question,
   questionNumber,
   totalQuestions,
-  category
+  category,
+  imageUrl,
 }: QuestionCardProps) => {
   return (
     <motion.div
@@ -104,6 +106,10 @@ export const QuestionCard = ({
           style={{ width: `${(questionNumber / totalQuestions) * 100}%` }}
         />
       </div>
+
+      {imageUrl && (
+        <QuestionImage imageUrl={imageUrl} alt={`Question ${questionNumber} image`} />
+      )}
       
       <h2 className="text-2xl font-bold text-foreground leading-relaxed">
         {question}
