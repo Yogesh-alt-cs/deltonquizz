@@ -9,6 +9,7 @@ import {
   Trophy, Star, Flame, Zap, Target, Award, Medal, Rocket, Users, Crown,
   Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3, Calendar
 } from "lucide-react";
+import { DailyChallenge } from "@/components/quiz/DailyChallenge";
 
 interface Achievement {
   id: string;
