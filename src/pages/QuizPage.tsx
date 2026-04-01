@@ -561,13 +561,39 @@ const QuizPage = () => {
       setGameState("complete");
       setShowConfetti(true);
       if (soundEnabled) sounds.playVictory();
+      clearQuizState();
+      // Mark daily challenge as completed
+      if (isDaily && user) {
+        const now = new Date();
+        const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+        localStorage.setItem(`daily_challenge_${user.id}`, String(seed));
+      }
       saveSession(true);
     } else {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
       setSelectedAnswer(null);
       setIsAnswered(false);
       setTimeLeft(30);
       setQuestionStartTime(Date.now());
+      // Auto-save state for resume
+      if (quizId) {
+        saveQuizState({
+          quizId,
+          quizTitle,
+          questions,
+          currentQuestionIndex: nextIndex,
+          score,
+          lives,
+          streak,
+          maxStreak,
+          combo,
+          correctAnswers,
+          userAnswers,
+          savedAt: Date.now(),
+          startTime: (window as any).__quizStartTime || Date.now(),
+        });
+      }
     }
   };
 
