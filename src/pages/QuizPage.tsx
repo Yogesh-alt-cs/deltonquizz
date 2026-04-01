@@ -633,6 +633,31 @@ const QuizPage = () => {
     toast({ title: 'Copied!', description: 'Share link copied to clipboard' });
   };
 
+  if (showResumePrompt && savedState) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-8 max-w-md text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <RotateCcw className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Resume Quiz?</h2>
+            <p className="text-muted-foreground mb-2">You have an unfinished quiz:</p>
+            <p className="font-medium text-foreground mb-1">{savedState.quizTitle}</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Question {savedState.currentQuestionIndex + 1}/{savedState.questions.length} · Score: {savedState.score}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button variant="gaming" onClick={() => restoreFromSaved(savedState)}>Resume</Button>
+              <Button variant="outline" onClick={() => { setShowResumePrompt(false); clearQuizState(); loadQuizFresh(); }}>Start Fresh</Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-background">
       <Navbar />
