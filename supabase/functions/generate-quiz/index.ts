@@ -18,6 +18,20 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const visualCategories = ['flags', 'biology-diagrams', 'anime-characters', 'brand-logos', 'geography', 'anatomy'];
+    const isVisual = visualCategories.includes(category?.toLowerCase?.() ?? '') || topic?.toLowerCase?.().includes('flag') || topic?.toLowerCase?.().includes('diagram') || topic?.toLowerCase?.().includes('anime') || topic?.toLowerCase?.().includes('logo');
+
+    const imageInstructions = isVisual ? `
+IMPORTANT: This is a VISUAL quiz. Each question MUST include an "image_url" field with a real, publicly accessible image URL.
+Use images from Wikimedia Commons, Wikipedia, or other reliable public sources.
+- For flags: use https://flagcdn.com/w640/{iso2}.png (e.g., https://flagcdn.com/w640/jp.png for Japan)
+- For biology/anatomy diagrams: use Wikimedia Commons direct file URLs (e.g., https://upload.wikimedia.org/wikipedia/commons/...)
+- For anime: use publicly available character images from Wikimedia or similar
+- For brand logos: use logo URLs from Wikimedia Commons
+- Ensure all URLs are direct image links (ending in .png, .jpg, .svg, or similar)
+- The "image_url" must be a REAL working URL, not a placeholder
+` : '';
+
     const prompt = `Generate a quiz with exactly ${numQuestions || 10} multiple choice questions about "${topic}"${course ? ` specifically for the course: ${course}` : ''}${category ? ` in the category: ${category}` : ''}.
     
 Difficulty level: ${difficulty || 'medium'}
@@ -27,7 +41,7 @@ Requirements:
 - Questions should be challenging but fair for the ${difficulty} difficulty level
 - Include a brief explanation for the correct answer
 - Vary question types (definitions, applications, problem-solving)
-
+${imageInstructions}
 Return a JSON object with this exact structure:
 {
   "title": "Quiz title",
@@ -35,6 +49,7 @@ Return a JSON object with this exact structure:
   "questions": [
     {
       "question_text": "The question?",
+      ${isVisual ? '"image_url": "https://example.com/image.png",' : ''}
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct_answer": 0,
       "explanation": "Why this is correct",
