@@ -875,6 +875,7 @@ const QuizPage = () => {
                     questionNumber={currentQuestionIndex + 1} 
                     totalQuestions={questions.length}
                     category={quizTitle}
+                    imageUrl={currentQuestion.image_url}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {currentQuestion.options.map((option, index) => (
