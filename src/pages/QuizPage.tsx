@@ -598,6 +598,7 @@ const QuizPage = () => {
   };
 
   const restartQuiz = () => {
+    clearQuizState();
     setCurrentQuestionIndex(0); 
     setSelectedAnswer(null); 
     setIsAnswered(false);
