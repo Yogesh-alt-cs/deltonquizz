@@ -8,6 +8,7 @@ import { CategoryCard } from "@/components/quiz/CategoryCard";
 import { Leaderboard } from "@/components/quiz/Leaderboard";
 import { FloatingParticles } from "@/components/effects/Particles";
 import { CategorySidebar } from "@/components/quiz/CategorySidebar";
+import { DailyChallenge } from "@/components/quiz/DailyChallenge";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
@@ -269,6 +270,13 @@ const Index = () => {
 
           {/* Background Gradient */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        </section>
+
+        {/* Daily Challenge Section */}
+        <section className="pb-8">
+          <div className="container mx-auto px-4 max-w-md">
+            <DailyChallenge />
+          </div>
         </section>
 
         {/* Categories Section */}

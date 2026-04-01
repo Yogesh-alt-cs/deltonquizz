@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { QuizPdfDownload } from "@/components/quiz/QuizPdfDownload";
 import { ArrowLeft, RotateCcw, Home, Trophy, Volume2, VolumeX, Loader2, Twitter, Facebook, Link as LinkIcon, Sparkles, TrendingUp, Eye } from "lucide-react";
 import { saveQuizHistory } from "@/utils/saveQuizHistory";
+import { saveQuizState, loadQuizState, clearQuizState } from "@/utils/quizStateManager";
+
 interface Question {
   id: string;
   question_text: string;
@@ -20,6 +22,7 @@ interface Question {
   correct_answer: number;
   explanation: string | null;
   points: number;
+  image_url?: string;
 }
 
 interface XPResult {
@@ -41,11 +44,14 @@ const QuizPage = () => {
   const urlDifficulty = searchParams.get('difficulty') || 'medium';
   const customTopic = searchParams.get('topic');
   const questionCount = parseInt(searchParams.get('questionCount') || '30', 10);
+  const isDaily = searchParams.get('daily') === 'true';
   
   // Tournament context params
   const tournamentId = searchParams.get('tournamentId');
   const matchId = searchParams.get('matchId');
   const participantId = searchParams.get('participantId');
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedState, setSavedState] = useState<ReturnType<typeof loadQuizState>>(null);
   
   const [quizTitle, setQuizTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -70,81 +76,116 @@ const QuizPage = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       if (!quizId) return;
-      try {
-        const { data: quizData } = await supabase.from('quizzes').select('*').eq('id', quizId).maybeSingle();
-        
-        if (quizData) {
-          setQuizTitle(quizData.title);
-          const { data: questionsData } = await supabase.from('questions').select('*').eq('quiz_id', quizData.id).order('order_index');
-          if (questionsData && questionsData.length > 0) {
-            setQuestions(questionsData.map(q => ({ 
-              ...q, 
-              options: Array.isArray(q.options) ? q.options : JSON.parse(q.options as string) 
-            })));
-            setTimeLeft(quizData.time_limit_seconds || 30);
-            (window as any).__quizStartTime = Date.now();
-            setGameState("playing");
-            setLoading(false);
-            return;
-          }
-        }
 
-        const categoryMap: Record<string, string> = {
-          'engineering': 'Engineering - Data Structures, Algorithms, Operating Systems, Networks',
-          'general': 'General Knowledge - History, Geography, Science, Culture',
-          'anime': 'Anime and Manga - Popular series like Naruto, One Piece, Attack on Titan',
-          'science': 'Science - Physics, Chemistry, Biology, Astronomy',
-          'history': 'World History - Ancient civilizations, World Wars, Modern history',
-          'technology': 'Technology - Computers, Programming, Internet, AI',
-          'mathematics': 'Mathematics - Algebra, Calculus, Geometry, Statistics',
-          'programming': 'Programming - JavaScript, Python, Data Structures, Algorithms',
-          'sports': 'Sports - Football, Basketball, Olympics, Athletes',
-          'movies-tv': 'Movies and TV Shows - Cinema, Series, Actors, Directors',
-          'music': 'Music - Artists, Songs, Genres, Music Theory',
-          'geography': 'Geography - Countries, Capitals, Landmarks, Maps',
-          'biology': 'Medical Biology - NEET style questions, Anatomy, Physiology, Pathology, Pharmacology, Clinical scenario MCQs',
-          'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation'
-        };
-        
-        // Use custom topic if provided, otherwise use category mapping
-        const topicName = customTopic || categoryMap[quizId] || quizId;
-        const difficulty = urlDifficulty;
-        
-        const numQ = questionCount || 30;
-        toast({ 
-          title: 'Generating Quiz', 
-          description: customTopic 
-            ? `AI is creating ${numQ} ${difficulty} questions about "${customTopic}"...` 
-            : `AI is creating ${numQ} ${difficulty} questions...` 
-        });
-        
-        const response = await supabase.functions.invoke('generate-quiz', {
-          body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
-        });
-
-        if (response.error) throw response.error;
-        
-        setQuizTitle(response.data.title || `${topicName} Quiz`);
-        const allQuestions = response.data.questions.map((q: any, i: number) => ({
-          id: `q-${i}`, 
-          question_text: q.question_text, 
-          options: q.options, 
-          correct_answer: q.correct_answer,
-          explanation: q.explanation, 
-          points: q.points || 10,
-        }));
-        setQuestions(allQuestions.slice(0, numQ));
-        (window as any).__quizStartTime = Date.now();
-        setGameState("playing");
-      } catch (error: any) {
-        console.error('Error:', error);
-        toast({ title: 'Error', description: error.message || 'Failed to load quiz', variant: 'destructive' });
-      } finally {
+      // Check for saved state first
+      const saved = loadQuizState(quizId);
+      if (saved && saved.currentQuestionIndex > 0) {
+        setSavedState(saved);
+        setShowResumePrompt(true);
         setLoading(false);
+        return;
       }
+
+      await loadQuizFresh();
     };
     fetchQuiz();
   }, [quizId, toast]);
+
+  const restoreFromSaved = (state: NonNullable<ReturnType<typeof loadQuizState>>) => {
+    setQuestions(state.questions);
+    setQuizTitle(state.quizTitle);
+    setCurrentQuestionIndex(state.currentQuestionIndex);
+    setScore(state.score);
+    setLives(state.lives);
+    setStreak(state.streak);
+    setMaxStreak(state.maxStreak);
+    setCombo(state.combo);
+    setCorrectAnswers(state.correctAnswers);
+    setUserAnswers(state.userAnswers);
+    (window as any).__quizStartTime = state.startTime;
+    setTimeLeft(30);
+    setGameState("playing");
+    setShowResumePrompt(false);
+    setLoading(false);
+  };
+
+  const loadQuizFresh = async () => {
+    if (!quizId) return;
+    setLoading(true);
+    clearQuizState();
+    try {
+      const { data: quizData } = await supabase.from('quizzes').select('*').eq('id', quizId).maybeSingle();
+      
+      if (quizData) {
+        setQuizTitle(quizData.title);
+        const { data: questionsData } = await supabase.from('questions').select('*').eq('quiz_id', quizData.id).order('order_index');
+        if (questionsData && questionsData.length > 0) {
+          setQuestions(questionsData.map(q => ({ 
+            ...q, 
+            options: Array.isArray(q.options) ? q.options : JSON.parse(q.options as string) 
+          })));
+          setTimeLeft(quizData.time_limit_seconds || 30);
+          (window as any).__quizStartTime = Date.now();
+          setGameState("playing");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const categoryMap: Record<string, string> = {
+        'engineering': 'Engineering - Data Structures, Algorithms, Operating Systems, Networks',
+        'general': 'General Knowledge - History, Geography, Science, Culture',
+        'anime': 'Anime and Manga - Popular series like Naruto, One Piece, Attack on Titan',
+        'science': 'Science - Physics, Chemistry, Biology, Astronomy',
+        'history': 'World History - Ancient civilizations, World Wars, Modern history',
+        'technology': 'Technology - Computers, Programming, Internet, AI',
+        'mathematics': 'Mathematics - Algebra, Calculus, Geometry, Statistics',
+        'programming': 'Programming - JavaScript, Python, Data Structures, Algorithms',
+        'sports': 'Sports - Football, Basketball, Olympics, Athletes',
+        'movies-tv': 'Movies and TV Shows - Cinema, Series, Actors, Directors',
+        'music': 'Music - Artists, Songs, Genres, Music Theory',
+        'geography': 'Geography - Countries, Capitals, Landmarks, Maps',
+        'biology': 'Medical Biology - NEET style questions, Anatomy, Physiology, Pathology, Pharmacology, Clinical scenario MCQs',
+        'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation'
+      };
+      
+      const topicName = customTopic || categoryMap[quizId] || quizId;
+      const difficulty = urlDifficulty;
+      
+      const numQ = questionCount || 30;
+      toast({ 
+        title: 'Generating Quiz', 
+        description: customTopic 
+          ? `AI is creating ${numQ} ${difficulty} questions about "${customTopic}"...` 
+          : `AI is creating ${numQ} ${difficulty} questions...` 
+      });
+      
+      const response = await supabase.functions.invoke('generate-quiz', {
+        body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
+      });
+
+      if (response.error) throw response.error;
+      
+      setQuizTitle(response.data.title || `${topicName} Quiz`);
+      const allQuestions = response.data.questions.map((q: any, i: number) => ({
+        id: `q-${i}`, 
+        question_text: q.question_text, 
+        options: q.options, 
+        correct_answer: q.correct_answer,
+        explanation: q.explanation, 
+        points: q.points || 10,
+        image_url: q.image_url || undefined,
+      }));
+      setQuestions(allQuestions.slice(0, numQ));
+      (window as any).__quizStartTime = Date.now();
+      setGameState("playing");
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to load quiz', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (gameState !== "playing" || isAnswered) return;
@@ -264,6 +305,11 @@ const QuizPage = () => {
     // Perfect game bonus
     if (completed && lives === 5 && accuracy === 100) {
       breakdown.push({ label: "Perfect game!", amount: 100 });
+    }
+
+    // Daily challenge bonus
+    if (isDaily && completed) {
+      breakdown.push({ label: "Daily challenge bonus", amount: 75 });
     }
 
     const totalXP = breakdown.reduce((sum, item) => sum + item.amount, 0);
@@ -520,17 +566,44 @@ const QuizPage = () => {
       setGameState("complete");
       setShowConfetti(true);
       if (soundEnabled) sounds.playVictory();
+      clearQuizState();
+      // Mark daily challenge as completed
+      if (isDaily && user) {
+        const now = new Date();
+        const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+        localStorage.setItem(`daily_challenge_${user.id}`, String(seed));
+      }
       saveSession(true);
     } else {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
       setSelectedAnswer(null);
       setIsAnswered(false);
       setTimeLeft(30);
       setQuestionStartTime(Date.now());
+      // Auto-save state for resume
+      if (quizId) {
+        saveQuizState({
+          quizId,
+          quizTitle,
+          questions,
+          currentQuestionIndex: nextIndex,
+          score,
+          lives,
+          streak,
+          maxStreak,
+          combo,
+          correctAnswers,
+          userAnswers,
+          savedAt: Date.now(),
+          startTime: (window as any).__quizStartTime || Date.now(),
+        });
+      }
     }
   };
 
   const restartQuiz = () => {
+    clearQuizState();
     setCurrentQuestionIndex(0); 
     setSelectedAnswer(null); 
     setIsAnswered(false);
@@ -564,6 +637,31 @@ const QuizPage = () => {
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
     toast({ title: 'Copied!', description: 'Share link copied to clipboard' });
   };
+
+  if (showResumePrompt && savedState) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-8 max-w-md text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <RotateCcw className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Resume Quiz?</h2>
+            <p className="text-muted-foreground mb-2">You have an unfinished quiz:</p>
+            <p className="font-medium text-foreground mb-1">{savedState.quizTitle}</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Question {savedState.currentQuestionIndex + 1}/{savedState.questions.length} · Score: {savedState.score}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button variant="gaming" onClick={() => restoreFromSaved(savedState)}>Resume</Button>
+              <Button variant="outline" onClick={() => { setShowResumePrompt(false); clearQuizState(); loadQuizFresh(); }}>Start Fresh</Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-background">
@@ -782,6 +880,7 @@ const QuizPage = () => {
                     questionNumber={currentQuestionIndex + 1} 
                     totalQuestions={questions.length}
                     category={quizTitle}
+                    imageUrl={currentQuestion.image_url}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {currentQuestion.options.map((option, index) => (

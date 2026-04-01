@@ -9,6 +9,7 @@ import {
   Trophy, Star, Flame, Zap, Target, Award, Medal, Rocket, Users, Crown,
   Play, Clock, TrendingUp, BookOpen, Loader2, History, BarChart3, Calendar
 } from "lucide-react";
+import { DailyChallenge } from "@/components/quiz/DailyChallenge";
 
 interface Achievement {
   id: string;
@@ -273,6 +274,11 @@ const DashboardPage = () => {
           <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/analytics')}>
             <BarChart3 className="w-5 h-5 mr-2" />Analytics
           </Button>
+        </div>
+
+        {/* Daily Challenge */}
+        <div className="mb-8 max-w-md">
+          <DailyChallenge />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
