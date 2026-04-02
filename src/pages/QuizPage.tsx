@@ -193,6 +193,14 @@ const QuizPage = () => {
     }
   };
 
+  // Start background music when playing
+  useEffect(() => {
+    if (gameState === "playing" && soundEnabled) {
+      sounds.startMusic();
+    }
+    return () => { sounds.stopMusic(); };
+  }, [gameState]);
+
   useEffect(() => {
     if (gameState !== "playing" || isAnswered) return;
     const timer = setInterval(() => {
