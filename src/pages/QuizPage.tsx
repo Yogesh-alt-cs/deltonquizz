@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { LivesDisplay, ScoreDisplay, TimerDisplay, StreakBadge } from "@/components/quiz/GameElements";
 import { QuestionCard, AnswerOption } from "@/components/quiz/QuizComponents";
+import { ScorePopup } from "@/components/quiz/ScorePopup";
 import { Confetti } from "@/components/effects/Particles";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
