@@ -580,6 +580,7 @@ const QuizPage = () => {
       setGameState("complete");
       setShowConfetti(true);
       if (soundEnabled) sounds.playVictory();
+      sounds.stopMusic();
       clearQuizState();
       // Mark daily challenge as completed
       if (isDaily && user) {
