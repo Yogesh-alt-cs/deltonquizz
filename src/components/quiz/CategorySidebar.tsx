@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Stethoscope, FlaskConical, GraduationCap, Sparkles, 
-  ChevronRight, X, Zap, Send, Loader2 
+  ChevronRight, X, Zap, Send, Loader2, Globe, Flag, Image, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
