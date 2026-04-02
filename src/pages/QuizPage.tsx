@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
 import { LivesDisplay, ScoreDisplay, TimerDisplay, StreakBadge } from "@/components/quiz/GameElements";
 import { QuestionCard, AnswerOption } from "@/components/quiz/QuizComponents";
+import { ScorePopup } from "@/components/quiz/ScorePopup";
 import { Confetti } from "@/components/effects/Particles";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useAuth } from "@/hooks/useAuth";
@@ -72,6 +73,7 @@ const QuizPage = () => {
   const [xpResult, setXpResult] = useState<XPResult | null>(null);
   const [userAnswers, setUserAnswers] = useState<{ questionIndex: number; selectedAnswer: number | null; isCorrect: boolean; timeTaken: number }[]>([]);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [scorePopup, setScorePopup] = useState<{ show: boolean; points: number; timeBonus: number; streakBonus: number; isCorrect: boolean }>({ show: false, points: 0, timeBonus: 0, streakBonus: 0, isCorrect: false });
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -191,6 +193,14 @@ const QuizPage = () => {
     }
   };
 
+  // Start background music when playing
+  useEffect(() => {
+    if (gameState === "playing" && soundEnabled) {
+      sounds.startMusic();
+    }
+    return () => { sounds.stopMusic(); };
+  }, [gameState]);
+
   useEffect(() => {
     if (gameState !== "playing" || isAnswered) return;
     const timer = setInterval(() => {
@@ -233,7 +243,8 @@ const QuizPage = () => {
     if (isCorrect) {
       const timeBonus = Math.floor(timeLeft * 2);
       const streakBonus = streak >= 3 ? 50 : streak >= 5 ? 100 : 0;
-      setScore((prev) => prev + (currentQuestion.points * combo) + timeBonus + streakBonus);
+      const basePoints = currentQuestion.points * combo;
+      setScore((prev) => prev + basePoints + timeBonus + streakBonus);
       setCorrectAnswers((prev) => prev + 1);
       setStreak((prev) => { 
         const ns = prev + 1; 
@@ -245,14 +256,21 @@ const QuizPage = () => {
         sounds.playCorrect(); 
         if (streak >= 2) sounds.playCombo(); 
       }
+      // Show score popup
+      setScorePopup({ show: true, points: Math.round(basePoints), timeBonus, streakBonus, isCorrect: true });
+      setTimeout(() => setScorePopup(p => ({ ...p, show: false })), 1200);
     } else {
       setLives((prev) => prev - 1);
       setStreak(0);
       setCombo(1);
       if (soundEnabled) sounds.playIncorrect();
+      // Show wrong popup
+      setScorePopup({ show: true, points: 0, timeBonus: 0, streakBonus: 0, isCorrect: false });
+      setTimeout(() => setScorePopup(p => ({ ...p, show: false })), 1200);
       if (lives <= 1) { 
         setGameState("gameOver"); 
         if (soundEnabled) sounds.playGameOver();
+        sounds.stopMusic();
         saveSession(false);
         return; 
       }
@@ -570,6 +588,7 @@ const QuizPage = () => {
       setGameState("complete");
       setShowConfetti(true);
       if (soundEnabled) sounds.playVictory();
+      sounds.stopMusic();
       clearQuizState();
       // Mark daily challenge as completed
       if (isDaily && user) {
@@ -685,6 +704,7 @@ const QuizPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Confetti isActive={showConfetti} />
+      <ScorePopup {...scorePopup} />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <AnimatePresence mode="wait">
           {(gameState === "gameOver" || gameState === "complete") ? (
