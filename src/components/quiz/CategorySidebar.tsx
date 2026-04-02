@@ -33,6 +33,14 @@ interface CategorySidebarProps {
 
 const categories: Category[] = [
   {
+    id: 'all-rounder',
+    name: 'All Rounder',
+    description: 'Mixed questions from all categories — test everything!',
+    icon: <Globe className="w-6 h-6" />,
+    color: 'hsl(263, 70%, 50%)',
+    subcategories: ['Science', 'History', 'Sports', 'Anime', 'Geography', 'Music']
+  },
+  {
     id: 'biology',
     name: 'Biology / Medical',
     description: 'Doctor-level questions: NEET, Anatomy, Physiology, Pathology, Pharmacology',
@@ -63,6 +71,30 @@ const categories: Category[] = [
     icon: <Sparkles className="w-6 h-6" />,
     color: 'hsl(280, 87%, 65%)',
   }
+];
+
+const visualCategories: Category[] = [
+  {
+    id: 'flags',
+    name: 'Flags',
+    description: 'Guess the country by its flag',
+    icon: <Flag className="w-6 h-6" />,
+    color: 'hsl(0, 84%, 60%)',
+  },
+  {
+    id: 'biology-diagrams',
+    name: 'Biology Diagrams',
+    description: 'Identify biological structures from diagrams',
+    icon: <Eye className="w-6 h-6" />,
+    color: 'hsl(187, 92%, 41%)',
+  },
+  {
+    id: 'anime-characters',
+    name: 'Anime Characters',
+    description: 'Guess anime characters from images',
+    icon: <Image className="w-6 h-6" />,
+    color: 'hsl(330, 81%, 60%)',
+  },
 ];
 
 const difficulties = [
