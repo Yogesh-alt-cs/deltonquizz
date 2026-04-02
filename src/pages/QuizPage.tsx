@@ -235,7 +235,8 @@ const QuizPage = () => {
     if (isCorrect) {
       const timeBonus = Math.floor(timeLeft * 2);
       const streakBonus = streak >= 3 ? 50 : streak >= 5 ? 100 : 0;
-      setScore((prev) => prev + (currentQuestion.points * combo) + timeBonus + streakBonus);
+      const basePoints = currentQuestion.points * combo;
+      setScore((prev) => prev + basePoints + timeBonus + streakBonus);
       setCorrectAnswers((prev) => prev + 1);
       setStreak((prev) => { 
         const ns = prev + 1; 
@@ -247,14 +248,21 @@ const QuizPage = () => {
         sounds.playCorrect(); 
         if (streak >= 2) sounds.playCombo(); 
       }
+      // Show score popup
+      setScorePopup({ show: true, points: Math.round(basePoints), timeBonus, streakBonus, isCorrect: true });
+      setTimeout(() => setScorePopup(p => ({ ...p, show: false })), 1200);
     } else {
       setLives((prev) => prev - 1);
       setStreak(0);
       setCombo(1);
       if (soundEnabled) sounds.playIncorrect();
+      // Show wrong popup
+      setScorePopup({ show: true, points: 0, timeBonus: 0, streakBonus: 0, isCorrect: false });
+      setTimeout(() => setScorePopup(p => ({ ...p, show: false })), 1200);
       if (lives <= 1) { 
         setGameState("gameOver"); 
         if (soundEnabled) sounds.playGameOver();
+        sounds.stopMusic();
         saveSession(false);
         return; 
       }
