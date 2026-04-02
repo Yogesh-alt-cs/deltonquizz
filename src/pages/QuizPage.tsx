@@ -146,7 +146,11 @@ const QuizPage = () => {
         'music': 'Music - Artists, Songs, Genres, Music Theory',
         'geography': 'Geography - Countries, Capitals, Landmarks, Maps',
         'biology': 'Medical Biology - NEET style questions, Anatomy, Physiology, Pathology, Pharmacology, Clinical scenario MCQs',
-        'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation'
+        'competitive': 'Competitive Exams - UPSC, SSC, Banking, Railway, State PSC, Defence exams preparation',
+        'all-rounder': 'All Rounder - Mixed questions from Science, History, Geography, Sports, Technology, Anime, Music, Movies, Engineering, Programming. Provide variety across all topics.',
+        'flags': 'Flags - Identify countries by their national flags. This is a visual quiz with image_url for each flag.',
+        'biology-diagrams': 'Biology Diagrams - Identify biological structures, organs, cells from diagrams. This is a visual quiz with image_url.',
+        'anime-characters': 'Anime Characters - Identify anime characters from images. This is a visual quiz with image_url.',
       };
       
       const topicName = customTopic || categoryMap[quizId] || quizId;
@@ -882,7 +886,7 @@ const QuizPage = () => {
                     category={quizTitle}
                     imageUrl={currentQuestion.image_url}
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                     {currentQuestion.options.map((option, index) => (
                       <AnswerOption 
                         key={index} 

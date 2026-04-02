@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Stethoscope, FlaskConical, GraduationCap, Sparkles, 
-  ChevronRight, X, Zap, Send, Loader2 
+  ChevronRight, X, Zap, Send, Loader2, Globe, Flag, Image, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,14 @@ interface CategorySidebarProps {
 }
 
 const categories: Category[] = [
+  {
+    id: 'all-rounder',
+    name: 'All Rounder',
+    description: 'Mixed questions from all categories — test everything!',
+    icon: <Globe className="w-6 h-6" />,
+    color: 'hsl(263, 70%, 50%)',
+    subcategories: ['Science', 'History', 'Sports', 'Anime', 'Geography', 'Music']
+  },
   {
     id: 'biology',
     name: 'Biology / Medical',
@@ -63,6 +71,30 @@ const categories: Category[] = [
     icon: <Sparkles className="w-6 h-6" />,
     color: 'hsl(280, 87%, 65%)',
   }
+];
+
+const visualCategories: Category[] = [
+  {
+    id: 'flags',
+    name: 'Flags',
+    description: 'Guess the country by its flag',
+    icon: <Flag className="w-6 h-6" />,
+    color: 'hsl(0, 84%, 60%)',
+  },
+  {
+    id: 'biology-diagrams',
+    name: 'Biology Diagrams',
+    description: 'Identify biological structures from diagrams',
+    icon: <Eye className="w-6 h-6" />,
+    color: 'hsl(187, 92%, 41%)',
+  },
+  {
+    id: 'anime-characters',
+    name: 'Anime Characters',
+    description: 'Guess anime characters from images',
+    icon: <Image className="w-6 h-6" />,
+    color: 'hsl(330, 81%, 60%)',
+  },
 ];
 
 const difficulties = [
@@ -186,12 +218,12 @@ export function CategorySidebar({ isOpen, onClose, onCategorySelect }: CategoryS
                             onClick={() => handleCategoryClick(category.id)}
                             className={cn(
                               "w-full p-4 rounded-xl border-2 border-border text-left transition-all",
-                              "hover:border-primary/50 hover:bg-primary/5 group"
+                              "hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.02] group"
                             )}
                           >
                             <div className="flex items-start gap-3">
                               <div 
-                                className="p-2 rounded-lg transition-colors"
+                                className="p-2 rounded-lg transition-all group-hover:scale-110"
                                 style={{ backgroundColor: `${category.color}20`, color: category.color }}
                               >
                                 {category.icon}
@@ -227,6 +259,50 @@ export function CategorySidebar({ isOpen, onClose, onCategorySelect }: CategoryS
                             </div>
                           </motion.button>
                         ))}
+
+                        {/* Visual Quizzes Section */}
+                        <div className="pt-4 mt-4 border-t border-border">
+                          <div className="flex items-center gap-2 mb-3 px-1">
+                            <Image className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-primary">Visual Quizzes</span>
+                          </div>
+                          {visualCategories.map((category, index) => (
+                            <motion.button
+                              key={category.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: (categories.length + index) * 0.05 }}
+                              onClick={() => handleCategoryClick(category.id)}
+                              className={cn(
+                                "w-full p-4 rounded-xl border-2 border-border text-left transition-all mb-3",
+                                "hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.02] group",
+                                "relative overflow-hidden"
+                              )}
+                            >
+                              <div className="absolute top-1 right-2">
+                                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">
+                                  Visual
+                                </span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <div 
+                                  className="p-2 rounded-lg transition-all group-hover:scale-110"
+                                  style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                                >
+                                  {category.icon}
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                    {category.name}
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                    {category.description}
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
                       </motion.div>
                     ) : step === 'difficulty' ? (
                       <motion.div

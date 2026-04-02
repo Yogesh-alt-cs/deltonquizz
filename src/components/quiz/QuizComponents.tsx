@@ -13,6 +13,14 @@ interface AnswerOptionProps {
 
 const optionLabels = ["A", "B", "C", "D"];
 
+// Kahoot-inspired distinct colors for each option
+const kahootColors = [
+  "from-[hsl(0,70%,50%)] to-[hsl(0,70%,40%)]",     // Red
+  "from-[hsl(220,70%,50%)] to-[hsl(220,70%,40%)]",  // Blue
+  "from-[hsl(45,90%,50%)] to-[hsl(45,90%,40%)]",    // Yellow/Gold
+  "from-[hsl(142,70%,40%)] to-[hsl(142,70%,32%)]",  // Green
+];
+
 export const AnswerOption = ({
   option,
   index,
@@ -23,7 +31,7 @@ export const AnswerOption = ({
 }: AnswerOptionProps) => {
   const getStateClass = () => {
     if (correct === true) return "correct";
-    if (correct === false && selected) return "incorrect";
+    if (correct === false && selected) return "incorrect animate-shake";
     if (selected) return "border-primary glow-primary";
     return "";
   };
@@ -32,37 +40,37 @@ export const AnswerOption = ({
     <motion.button
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={!disabled ? { scale: 1.02 } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      className={`answer-option w-full text-left ${getStateClass()} ${disabled ? "disabled cursor-not-allowed" : ""}`}
+      transition={{ delay: index * 0.08 }}
+      whileHover={!disabled ? { scale: 1.04, y: -2 } : {}}
+      whileTap={!disabled ? { scale: 0.95 } : {}}
+      className={`answer-option w-full text-left ${getStateClass()} ${disabled ? "disabled cursor-not-allowed" : ""} bg-gradient-to-br ${kahootColors[index]} !border-transparent`}
       onClick={onClick}
       disabled={disabled}
     >
       <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-gaming font-bold text-lg ${
-          selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-        }`}>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-gaming font-bold text-lg bg-black/20 text-white`}>
           {optionLabels[index]}
         </div>
-        <span className="flex-1 text-foreground font-medium">{option}</span>
+        <span className="flex-1 text-white font-semibold text-base">{option}</span>
         <AnimatePresence>
           {correct === true && (
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-8 h-8 rounded-full bg-success flex items-center justify-center"
+              initial={{ scale: 0, rotate: -90 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 500 }}
+              className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center"
             >
-              <Check className="w-5 h-5 text-success-foreground" />
+              <Check className="w-5 h-5 text-white" />
             </motion.div>
           )}
           {correct === false && selected && (
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center"
+              initial={{ scale: 0, rotate: 90 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 500 }}
+              className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center"
             >
-              <X className="w-5 h-5 text-destructive-foreground" />
+              <X className="w-5 h-5 text-white" />
             </motion.div>
           )}
         </AnimatePresence>
