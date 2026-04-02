@@ -14,18 +14,26 @@ const SOUNDS = {
   readyUp: 'https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3',
   timeout: 'https://assets.mixkit.co/active_storage/sfx/2028/2028-preview.mp3',
   go: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
+  streakUp: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3',
+  whoosh: 'https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3',
+};
+
+// Background music (looping ambient quiz music)
+const MUSIC = {
+  quiz: 'https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3',
 };
 
 export function useSoundEffects() {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
   const timeoutRefs = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
   const soundEnabled = useRef(true);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const musicEnabled = useRef(false);
 
   const playSound = useCallback((soundName: keyof typeof SOUNDS, maxDuration?: number) => {
     if (!soundEnabled.current) return;
 
     try {
-      // Clear any existing timeout for this sound
       if (timeoutRefs.current[soundName]) {
         clearTimeout(timeoutRefs.current[soundName]);
       }
@@ -39,7 +47,6 @@ export function useSoundEffects() {
       audio.currentTime = 0;
       audio.play().catch(console.error);
 
-      // Stop the sound after maxDuration if specified
       if (maxDuration) {
         timeoutRefs.current[soundName] = setTimeout(() => {
           audio.pause();
@@ -51,14 +58,37 @@ export function useSoundEffects() {
     }
   }, []);
 
+  const startMusic = useCallback(() => {
+    if (!soundEnabled.current) return;
+    try {
+      if (!musicRef.current) {
+        musicRef.current = new Audio(MUSIC.quiz);
+        musicRef.current.loop = true;
+        musicRef.current.volume = 0.15;
+      }
+      musicRef.current.play().catch(() => {});
+      musicEnabled.current = true;
+    } catch {}
+  }, []);
+
+  const stopMusic = useCallback(() => {
+    if (musicRef.current) {
+      musicRef.current.pause();
+      musicRef.current.currentTime = 0;
+    }
+    musicEnabled.current = false;
+  }, []);
+
   const toggleSound = useCallback(() => {
     soundEnabled.current = !soundEnabled.current;
+    if (!soundEnabled.current) stopMusic();
     return soundEnabled.current;
-  }, []);
+  }, [stopMusic]);
 
   const setSoundEnabled = useCallback((enabled: boolean) => {
     soundEnabled.current = enabled;
-  }, []);
+    if (!enabled) stopMusic();
+  }, [stopMusic]);
 
   return {
     playCorrect: () => playSound('correct'),
@@ -73,6 +103,10 @@ export function useSoundEffects() {
     playReadyUp: () => playSound('readyUp', 2),
     playTimeout: () => playSound('timeout', 3),
     playGo: () => playSound('go', 2),
+    playStreakUp: () => playSound('streakUp', 2),
+    playWhoosh: () => playSound('whoosh', 1),
+    startMusic,
+    stopMusic,
     toggleSound,
     setSoundEnabled,
     isSoundEnabled: () => soundEnabled.current,
