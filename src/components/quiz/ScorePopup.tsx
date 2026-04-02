@@ -22,14 +22,8 @@ export const ScorePopup = ({ show, points, timeBonus, streakBonus, isCorrect }: 
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
           className="fixed inset-x-0 top-[45%] z-50 flex justify-center pointer-events-none"
         >
-          <div className={`
-            px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border
-            ${isCorrect
-              ? "bg-success/20 border-success/40 text-success"
-              : "bg-destructive/20 border-destructive/40 text-destructive"
-            }
-          `}>
-            {isCorrect ? (
+          {isCorrect ? (
+            <div className="px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border bg-success/20 border-success/40 text-success">
               <div className="flex flex-col items-center gap-1">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -57,17 +51,18 @@ export const ScorePopup = ({ show, points, timeBonus, streakBonus, isCorrect }: 
                   )}
                 </div>
               </div>
-            ) : (
+            </div>
+          ) : (
+            <div className="px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border bg-destructive/20 border-destructive/40 text-destructive">
               <motion.div
-                initial={{ x: -10 }}
-                animate={{ x: [−10, 10, -6, 6, 0] }}
+                animate={{ x: [-10, 10, -6, 6, 0] }}
                 transition={{ duration: 0.4 }}
-                className="font-gaming text-2xl font-bold"
+                className="font-gaming text-2xl font-bold text-center"
               >
-                ✗ Wrong!
+                Wrong!
               </motion.div>
-            )}
-          </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
