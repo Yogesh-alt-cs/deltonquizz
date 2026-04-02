@@ -886,7 +886,7 @@ const QuizPage = () => {
                     category={quizTitle}
                     imageUrl={currentQuestion.image_url}
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                     {currentQuestion.options.map((option, index) => (
                       <AnswerOption 
                         key={index} 

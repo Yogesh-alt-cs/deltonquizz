@@ -13,6 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
 const categories = [{
+  id: "all-rounder",
+  name: "All Rounder",
+  description: "Mixed questions from every category — the ultimate versatility test!",
+  icon: Globe,
+  color: "#8B5CF6",
+  quizCount: 30,
+  difficulty: "Medium" as const
+}, {
   id: "engineering",
   name: "Engineering",
   description: "Test your knowledge of mechanical, electrical, and software engineering concepts",
@@ -35,6 +43,22 @@ const categories = [{
   icon: Sparkles,
   color: "#EC4899",
   quizCount: 32,
+  difficulty: "Easy" as const
+}, {
+  id: "flags",
+  name: "🏳️ Flags",
+  description: "Guess the country by its flag — visual quiz!",
+  icon: Globe,
+  color: "#EF4444",
+  quizCount: 30,
+  difficulty: "Easy" as const
+}, {
+  id: "anime-characters",
+  name: "🎌 Anime Characters",
+  description: "Guess anime characters from images",
+  icon: Sparkles,
+  color: "#F472B6",
+  quizCount: 30,
   difficulty: "Easy" as const
 }];
 

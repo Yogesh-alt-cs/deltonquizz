@@ -37,6 +37,7 @@ const colorMap: Record<string, string> = {
 };
 
 const defaultCategories = [
+  { id: "all-rounder", name: "All Rounder", description: "Mixed questions from all categories — test your versatility!", icon: Globe, color: "#8B5CF6", quizCount: 30, difficulty: "Medium" as const, type: "mixed" },
   { id: "engineering", name: "Engineering", description: "Technical engineering concepts and problems", icon: Cpu, color: "#6366F1", quizCount: 30, difficulty: "Hard" as const },
   { id: "general-knowledge", name: "General Knowledge", description: "Test your knowledge on various topics", icon: Globe, color: "#10B981", quizCount: 30, difficulty: "Medium" as const },
   { id: "anime", name: "Anime", description: "Questions about popular anime series", icon: Sparkles, color: "#EC4899", quizCount: 30, difficulty: "Easy" as const },
@@ -49,6 +50,9 @@ const defaultCategories = [
   { id: "movies-tv", name: "Movies & TV", description: "Film and television trivia", icon: Film, color: "#D946EF", quizCount: 30, difficulty: "Easy" as const },
   { id: "music", name: "Music", description: "Artists, songs, and music theory", icon: Music, color: "#0EA5E9", quizCount: 30, difficulty: "Medium" as const },
   { id: "geography", name: "Geography", description: "Countries, capitals, and landmarks", icon: Map, color: "#10B981", quizCount: 30, difficulty: "Medium" as const },
+  { id: "flags", name: "Flags", description: "Guess the country by its flag — visual quiz!", icon: Map, color: "#EF4444", quizCount: 30, difficulty: "Easy" as const, type: "visual" },
+  { id: "biology-diagrams", name: "Biology Diagrams", description: "Identify biological structures from diagrams", icon: FlaskConical, color: "#06B6D4", quizCount: 30, difficulty: "Medium" as const, type: "visual" },
+  { id: "anime-characters", name: "Anime Characters", description: "Guess anime characters from images", icon: Sparkles, color: "#F472B6", quizCount: 30, difficulty: "Easy" as const, type: "visual" },
 ];
 
 interface Category {
