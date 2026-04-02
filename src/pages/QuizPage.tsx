@@ -704,6 +704,7 @@ const QuizPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Confetti isActive={showConfetti} />
+      <ScorePopup {...scorePopup} />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <AnimatePresence mode="wait">
           {(gameState === "gameOver" || gameState === "complete") ? (
