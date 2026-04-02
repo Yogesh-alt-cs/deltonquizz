@@ -73,6 +73,7 @@ const QuizPage = () => {
   const [xpResult, setXpResult] = useState<XPResult | null>(null);
   const [userAnswers, setUserAnswers] = useState<{ questionIndex: number; selectedAnswer: number | null; isCorrect: boolean; timeTaken: number }[]>([]);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [scorePopup, setScorePopup] = useState<{ show: boolean; points: number; timeBonus: number; streakBonus: number; isCorrect: boolean }>({ show: false, points: 0, timeBonus: 0, streakBonus: 0, isCorrect: false });
 
   useEffect(() => {
     const fetchQuiz = async () => {
