@@ -381,7 +381,7 @@ export default function ProfilePage() {
                       style={{ borderColor: themeColor, borderWidth: '3px' }}
                     >
                       {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={profile.avatar_url} alt={`${profile?.username || 'User'} profile picture`} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-12 h-12 text-primary" />
                       )}
