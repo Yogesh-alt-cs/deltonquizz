@@ -783,7 +783,7 @@ export default function CreateQuizPage() {
                     <div className="text-4xl font-display font-bold text-primary tracking-widest">
                       {joinCode}
                     </div>
-                    <Button variant="outline" size="icon" onClick={copyJoinCode}>
+                    <Button variant="outline" size="icon" aria-label="Copy join code" onClick={copyJoinCode}>
                       <Copy className="w-5 h-5" />
                     </Button>
                   </div>
