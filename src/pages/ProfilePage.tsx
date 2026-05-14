@@ -396,6 +396,7 @@ export default function ProfilePage() {
                     <Button
                       size="icon"
                       variant="secondary"
+                      aria-label="Upload profile picture"
                       className="absolute -bottom-1 -right-1 rounded-full w-8 h-8"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
