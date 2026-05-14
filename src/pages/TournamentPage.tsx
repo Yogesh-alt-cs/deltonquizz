@@ -1167,6 +1167,7 @@ const TournamentPage = () => {
   // Tournament List View
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Tournaments — Delton Quizz" description="Compete in bracket-style elimination tournaments on Delton Quizz." path="/tournament" />
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

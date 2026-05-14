@@ -361,6 +361,7 @@ export default function CreateQuizPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Create a Quiz — Delton Quizz" description="Build your own quiz manually, generate one with AI, or import questions from a PDF." path="/create" />
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 pt-24">

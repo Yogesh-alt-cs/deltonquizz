@@ -267,6 +267,7 @@ const StudyModePage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
+        <SEO title="Study Mode — Delton Quizz" description="Spaced-repetition flashcards generated from your quizzes to lock in what you've learned." path="/study" />
         <Navbar />
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="w-12 h-12 text-primary animate-spin" />

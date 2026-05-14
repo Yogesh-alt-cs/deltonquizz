@@ -119,6 +119,7 @@ export default function QuizHistoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Quiz History — Delton Quizz" description="Review your past Delton Quizz attempts and revisit answers question by question." path="/history" />
       <Navbar />
       <main className="container mx-auto px-4 py-8 pt-24">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">

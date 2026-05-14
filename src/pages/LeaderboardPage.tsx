@@ -134,6 +134,7 @@ const LeaderboardPage = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO title="Global Leaderboard — Delton Quizz" description="See top Delton Quizz players ranked by total score, streaks, and quizzes completed." path="/leaderboard" />
       <FloatingParticles />
       <Navbar />
       

@@ -239,6 +239,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Analytics — Delton Quizz" description="Detailed performance analytics: accuracy by topic, difficulty trends, and progress over time." path="/analytics" />
       <FloatingParticles />
       <Navbar />
       <main className="container mx-auto px-4 py-8 pt-24">

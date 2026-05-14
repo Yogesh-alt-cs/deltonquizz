@@ -325,6 +325,7 @@ export default function FriendsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Friends — Delton Quizz" description="Add friends, send quiz challenges, and track head-to-head results on Delton Quizz." path="/friends" />
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 pt-24">

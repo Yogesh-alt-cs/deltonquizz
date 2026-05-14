@@ -218,6 +218,7 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Dashboard — Delton Quizz" description="Your personal Delton Quizz dashboard: XP, daily streak, recent quizzes, and stats." path="/dashboard" />
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

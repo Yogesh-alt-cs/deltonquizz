@@ -472,6 +472,7 @@ const MultiplayerPage = () => {
   // Playing state
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Multiplayer Quiz — Delton Quizz" description="Create or join live multiplayer quiz rooms and compete with friends in real time." path="/multiplayer" />
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <div className="flex items-center justify-between mb-6">
