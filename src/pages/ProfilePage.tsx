@@ -421,8 +421,9 @@ export default function ProfilePage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Username</label>
+                    <label htmlFor="profile-username" className="text-sm text-muted-foreground mb-1 block">Username</label>
                     <Input
+                      id="profile-username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter username"
@@ -430,8 +431,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Bio</label>
+                    <label htmlFor="profile-bio" className="text-sm text-muted-foreground mb-1 block">Bio</label>
                     <Input
+                      id="profile-bio"
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
                       placeholder="Tell us about yourself"
