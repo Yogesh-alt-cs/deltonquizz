@@ -193,7 +193,7 @@ export function CategorySidebar({ isOpen, onClose, onCategorySelect }: CategoryS
                       {step === 'category' ? 'Categories' : step === 'difficulty' ? 'Select Difficulty' : 'Custom Topic'}
                     </h2>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={step !== 'category' ? handleBack : onClose}>
+                  <Button variant="ghost" size="icon" aria-label={step !== 'category' ? 'Back' : 'Close categories'} onClick={step !== 'category' ? handleBack : onClose}>
                     {step !== 'category' ? <ChevronRight className="w-5 h-5 rotate-180" /> : <X className="w-5 h-5" />}
                   </Button>
                 </div>
