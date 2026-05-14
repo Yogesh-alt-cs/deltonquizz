@@ -818,13 +818,13 @@ const QuizPage = () => {
                 <div className="mb-6">
                   <p className="text-sm text-muted-foreground mb-3">Share your score</p>
                   <div className="flex justify-center gap-3">
-                    <Button variant="outline" size="icon" onClick={shareToTwitter} title="Share on Twitter">
+                    <Button variant="outline" size="icon" onClick={shareToTwitter} title="Share on Twitter" aria-label="Share on Twitter">
                       <Twitter className="w-5 h-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={shareToFacebook} title="Share on Facebook">
+                    <Button variant="outline" size="icon" onClick={shareToFacebook} title="Share on Facebook" aria-label="Share on Facebook">
                       <Facebook className="w-5 h-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={copyLink} title="Copy link">
+                    <Button variant="outline" size="icon" onClick={copyLink} title="Copy link" aria-label="Copy quiz link">
                       <LinkIcon className="w-5 h-5" />
                     </Button>
                   </div>
