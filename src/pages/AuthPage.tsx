@@ -166,17 +166,20 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {isSignUp && (
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10 bg-background/50 border-border" required />
+                    <label htmlFor="auth-username" className="sr-only">Username</label>
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                    <Input id="auth-username" type="text" placeholder="Username" aria-label="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10 bg-background/50 border-border" required />
                   </div>
                 )}
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-background/50 border-border" required />
+                  <label htmlFor="auth-email" className="sr-only">Email</label>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                  <Input id="auth-email" type="email" placeholder="Email" aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-background/50 border-border" required />
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 bg-background/50 border-border" required />
+                  <label htmlFor="auth-password" className="sr-only">Password</label>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                  <Input id="auth-password" type="password" placeholder="Password" aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 bg-background/50 border-border" required />
                 </div>
                 {!isSignUp && (
                   <div className="text-right">
