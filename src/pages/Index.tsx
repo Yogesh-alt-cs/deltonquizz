@@ -459,7 +459,7 @@ const Index = () => {
           }} className="glass-card p-12 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 pointer-events-none" />
               
-              <img src={logo} alt="Delton Quizz" className="w-16 h-16 mx-auto rounded-xl mb-6" />
+              <img src={logo} alt="Delton Quizz logo" width={64} height={64} className="w-16 h-16 mx-auto rounded-xl mb-6" />
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Ready to Test Your Knowledge?
               </h2>
