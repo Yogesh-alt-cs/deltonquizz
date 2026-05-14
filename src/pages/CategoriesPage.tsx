@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cpu, Globe, Sparkles, BookOpen, Calculator, Code, Trophy, Film, Music, Map, FlaskConical, Landmark, Wrench } from "lucide-react";
@@ -90,6 +91,18 @@ const CategoriesPage = () => {
   }, []);
 
   return (
+    <>
+      <SEO
+        title="Quiz Categories — Delton Quizz"
+        description="Browse Delton Quizz categories: science, math, history, anime, flags, biology diagrams, brand logos and more."
+        path="/categories"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Quiz Categories",
+          url: "https://deltonquizz.lovable.app/categories",
+        }}
+      />
     <div className="min-h-screen bg-background">
       <FloatingParticles />
       <Navbar />
@@ -130,6 +143,7 @@ const CategoriesPage = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 

@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -48,6 +49,7 @@ export default function JoinQuizPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Join a Quiz — Delton Quizz" description="Enter a room code to join a live multiplayer quiz on Delton Quizz." path="/join" />
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 pt-24">

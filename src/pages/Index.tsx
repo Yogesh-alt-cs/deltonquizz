@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -122,6 +123,19 @@ const Index = () => {
     navigate(`/quiz/${categoryId}?${params.toString()}`);
   };
   return <div className="min-h-screen">
+      <SEO
+        title="Delton Quizz — Learn. Play. Conquer."
+        description="AI-powered gamified quizzes with live multiplayer, tournaments, daily challenges, and global leaderboards."
+        path="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Delton Quizz",
+          url: "https://deltonquizz.lovable.app/",
+          applicationCategory: "EducationalApplication",
+          operatingSystem: "Web",
+        }}
+      />
       <FloatingParticles />
       <Navbar />
       <CategorySidebar 

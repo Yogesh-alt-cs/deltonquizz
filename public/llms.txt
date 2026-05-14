@@ -1,0 +1,26 @@
+# Delton Quizz
+
+> AI-powered gamified quiz platform with live multiplayer, tournaments, daily challenges, leaderboards, and study tools.
+
+Delton Quizz turns studying into a game. Players generate AI quizzes on any topic, compete in real-time multiplayer rooms, climb global leaderboards, and review answers with detailed explanations. Visual quizzes (flags, biology diagrams, anime characters, brand logos) and PDF-to-quiz import are supported.
+
+## Pages
+
+- [Home](/): Landing page with quick start, daily challenge, and category sidebar.
+- [Categories](/categories): Browse all quiz categories and visual quiz types.
+- [Dashboard](/dashboard): Personal dashboard with stats, streak, and recent activity.
+- [Leaderboard](/leaderboard): Global player rankings by score.
+- [Multiplayer](/multiplayer): Create or join live multiplayer quiz rooms.
+- [Tournament](/tournament): Bracket-based tournaments with multiple players.
+- [Study](/study): Spaced-repetition flashcards generated from quizzes.
+- [Create Quiz](/create): Build a custom quiz manually or from a PDF.
+- [Join Quiz](/join): Join a multiplayer room by code.
+- [Friends](/friends): Manage friends and challenges.
+- [Quiz History](/history): Past quiz attempts and reviews.
+- [Analytics](/analytics): Performance charts by topic and difficulty.
+- [Recommendations](/recommendations): Personalized quiz suggestions.
+
+## Optional
+
+- [Profile](/profile): User profile and settings.
+- [Sign In](/auth): Authentication.

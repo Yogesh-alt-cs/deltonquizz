@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -217,6 +218,7 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Dashboard — Delton Quizz" description="Your personal Delton Quizz dashboard: XP, daily streak, recent quizzes, and stats." path="/dashboard" />
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

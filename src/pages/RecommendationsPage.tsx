@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -135,6 +136,7 @@ export default function RecommendationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="Recommended Quizzes — Delton Quizz" description="Personalized quiz recommendations based on your weak areas and learning goals." path="/recommendations" />
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 pt-24">

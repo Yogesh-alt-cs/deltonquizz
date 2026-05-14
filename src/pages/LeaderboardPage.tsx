@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
@@ -133,6 +134,7 @@ const LeaderboardPage = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO title="Global Leaderboard — Delton Quizz" description="See top Delton Quizz players ranked by total score, streaks, and quizzes completed." path="/leaderboard" />
       <FloatingParticles />
       <Navbar />
       
