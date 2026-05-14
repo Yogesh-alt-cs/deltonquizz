@@ -737,6 +737,7 @@ export default function CreateQuizPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
+                                aria-label="Edit question"
                                 onClick={() => setEditingIndex(index)}
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -744,6 +745,7 @@ export default function CreateQuizPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
+                                aria-label="Delete question"
                                 onClick={() => deleteQuestion(index)}
                               >
                                 <Trash2 className="w-4 h-4 text-destructive" />
