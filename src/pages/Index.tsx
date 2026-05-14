@@ -485,7 +485,7 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <img src={logo} alt="Delton Quizz" className="w-10 h-10 rounded-xl" />
+                <img src={logo} alt="Delton Quizz logo" width={40} height={40} className="w-10 h-10 rounded-xl" />
                 <span className="font-gaming text-lg">
                   DELTON<span className="text-primary">QUIZZ</span>
                 </span>
