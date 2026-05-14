@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cpu, Globe, Sparkles, BookOpen, Calculator, Code, Trophy, Film, Music, Map, FlaskConical, Landmark, Wrench } from "lucide-react";
