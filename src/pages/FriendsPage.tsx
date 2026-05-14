@@ -363,8 +363,11 @@ export default function FriendsPage() {
               <Card className="glass-card p-4">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <label htmlFor="friends-search" className="sr-only">Search users by username</label>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                     <Input
+                      id="friends-search"
+                      aria-label="Search users by username"
                       placeholder="Search users by username..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}

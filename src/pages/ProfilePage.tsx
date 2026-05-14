@@ -381,7 +381,7 @@ export default function ProfilePage() {
                       style={{ borderColor: themeColor, borderWidth: '3px' }}
                     >
                       {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={profile.avatar_url} alt={`${profile?.username || 'User'} profile picture`} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-12 h-12 text-primary" />
                       )}
@@ -396,6 +396,7 @@ export default function ProfilePage() {
                     <Button
                       size="icon"
                       variant="secondary"
+                      aria-label="Upload profile picture"
                       className="absolute -bottom-1 -right-1 rounded-full w-8 h-8"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
@@ -420,8 +421,9 @@ export default function ProfilePage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Username</label>
+                    <label htmlFor="profile-username" className="text-sm text-muted-foreground mb-1 block">Username</label>
                     <Input
+                      id="profile-username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter username"
@@ -429,8 +431,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Bio</label>
+                    <label htmlFor="profile-bio" className="text-sm text-muted-foreground mb-1 block">Bio</label>
                     <Input
+                      id="profile-bio"
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
                       placeholder="Tell us about yourself"

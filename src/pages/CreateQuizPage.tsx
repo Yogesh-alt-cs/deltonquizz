@@ -737,6 +737,7 @@ export default function CreateQuizPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
+                                aria-label="Edit question"
                                 onClick={() => setEditingIndex(index)}
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -744,6 +745,7 @@ export default function CreateQuizPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon"
+                                aria-label="Delete question"
                                 onClick={() => deleteQuestion(index)}
                               >
                                 <Trash2 className="w-4 h-4 text-destructive" />
@@ -781,7 +783,7 @@ export default function CreateQuizPage() {
                     <div className="text-4xl font-display font-bold text-primary tracking-widest">
                       {joinCode}
                     </div>
-                    <Button variant="outline" size="icon" onClick={copyJoinCode}>
+                    <Button variant="outline" size="icon" aria-label="Copy join code" onClick={copyJoinCode}>
                       <Copy className="w-5 h-5" />
                     </Button>
                   </div>

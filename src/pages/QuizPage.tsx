@@ -715,7 +715,7 @@ const QuizPage = () => {
           educationalLevel: urlDifficulty,
         } : undefined}
       />
-      <h1 className="sr-only">{quizTitle || "Delton Quizz"}</h1>
+      <h1 className="sr-only">{quizTitle ? `${quizTitle} Quiz` : "Delton Quizz"}</h1>
       <Navbar />
       <Confetti isActive={showConfetti} />
       <ScorePopup {...scorePopup} />
@@ -818,13 +818,13 @@ const QuizPage = () => {
                 <div className="mb-6">
                   <p className="text-sm text-muted-foreground mb-3">Share your score</p>
                   <div className="flex justify-center gap-3">
-                    <Button variant="outline" size="icon" onClick={shareToTwitter} title="Share on Twitter">
+                    <Button variant="outline" size="icon" onClick={shareToTwitter} title="Share on Twitter" aria-label="Share on Twitter">
                       <Twitter className="w-5 h-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={shareToFacebook} title="Share on Facebook">
+                    <Button variant="outline" size="icon" onClick={shareToFacebook} title="Share on Facebook" aria-label="Share on Facebook">
                       <Facebook className="w-5 h-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={copyLink} title="Copy link">
+                    <Button variant="outline" size="icon" onClick={copyLink} title="Copy link" aria-label="Copy quiz link">
                       <LinkIcon className="w-5 h-5" />
                     </Button>
                   </div>
@@ -887,7 +887,7 @@ const QuizPage = () => {
                 <Button variant="ghost" onClick={() => navigate(-1)}>
                   <ArrowLeft className="w-5 h-5 mr-2" />Exit
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => { setSoundEnabled(!soundEnabled); sounds.setSoundEnabled(!soundEnabled); }}>
+                <Button variant="ghost" size="icon" aria-label={soundEnabled ? "Mute sound" : "Unmute sound"} onClick={() => { setSoundEnabled(!soundEnabled); sounds.setSoundEnabled(!soundEnabled); }}>
                   {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </Button>
               </div>

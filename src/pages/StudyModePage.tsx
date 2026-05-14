@@ -374,13 +374,19 @@ const StudyModePage = () => {
             <h1 className="text-2xl font-bold mb-6">Create Flashcard</h1>
             
             <div className="glass-card p-6 space-y-4">
+              <label htmlFor="flashcard-question" className="sr-only">Question</label>
               <Textarea
+                id="flashcard-question"
+                aria-label="Flashcard question"
                 placeholder="Question"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={3}
               />
+              <label htmlFor="flashcard-answer" className="sr-only">Answer</label>
               <Textarea
+                id="flashcard-answer"
+                aria-label="Flashcard answer"
                 placeholder="Answer"
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
@@ -529,6 +535,7 @@ const StudyModePage = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Delete flashcard"
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               >
                                 <Trash2 className="w-4 h-4" />

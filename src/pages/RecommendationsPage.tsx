@@ -260,6 +260,7 @@ export default function RecommendationsPage() {
                           <Button
                             size="icon"
                             variant="ghost"
+                            aria-label={`Start ${rec.quiz?.title || 'recommended'} quiz`}
                             className="shrink-0 group-hover:bg-primary group-hover:text-primary-foreground"
                             onClick={() => startQuiz(rec.quiz_id!)}
                           >
