@@ -150,8 +150,9 @@ export default function AuthPage() {
           {isForgotPassword ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-background/50 border-border" required />
+                <label htmlFor="auth-forgot-email" className="sr-only">Email</label>
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
+                <Input id="auth-forgot-email" type="email" placeholder="Email" aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-background/50 border-border" required />
               </div>
               <Button type="submit" className="w-full btn-gaming" disabled={loading}>
                 {loading ? 'Sending...' : 'Send Reset Link'}
