@@ -320,7 +320,7 @@ const MultiplayerPage = () => {
                 <h2 className="text-2xl font-bold mb-2">Game Lobby</h2>
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <span className="font-mono text-3xl tracking-wider text-primary">{room.room_code}</span>
-                  <Button variant="ghost" size="icon" onClick={copyRoomCode}>
+                  <Button variant="ghost" size="icon" aria-label="Copy room code" onClick={copyRoomCode}>
                     <Copy className="w-5 h-5" />
                   </Button>
                 </div>
