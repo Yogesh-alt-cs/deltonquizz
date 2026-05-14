@@ -715,7 +715,7 @@ const QuizPage = () => {
           educationalLevel: urlDifficulty,
         } : undefined}
       />
-      <h1 className="sr-only">{quizTitle || "Delton Quizz"}</h1>
+      <h1 className="sr-only">{quizTitle ? `${quizTitle} Quiz` : "Delton Quizz"}</h1>
       <Navbar />
       <Confetti isActive={showConfetti} />
       <ScorePopup {...scorePopup} />
