@@ -703,6 +703,19 @@ const QuizPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title={quizTitle ? `${quizTitle} — Delton Quizz` : "Quiz — Delton Quizz"}
+        description={quizTitle ? `Play the ${quizTitle} quiz on Delton Quizz and challenge your knowledge.` : "Play an interactive quiz on Delton Quizz."}
+        path={`/quiz/${quizId ?? ''}`}
+        jsonLd={quizTitle ? {
+          "@context": "https://schema.org",
+          "@type": "Quiz",
+          name: quizTitle,
+          numberOfQuestions: questions.length,
+          educationalLevel: urlDifficulty,
+        } : undefined}
+      />
+      <h1 className="sr-only">{quizTitle || "Delton Quizz"}</h1>
       <Navbar />
       <Confetti isActive={showConfetti} />
       <ScorePopup {...scorePopup} />
