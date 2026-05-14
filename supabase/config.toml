@@ -1,10 +1,10 @@
 project_id = "gyeeulvdldqwpqblymba"
 
 [functions.generate-quiz]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-pdf-quiz]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-recommendations]
 verify_jwt = false

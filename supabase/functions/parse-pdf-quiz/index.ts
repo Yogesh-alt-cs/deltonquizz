@@ -1,8 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+const sanitizeText = (v: unknown, max: number) => {
+  if (typeof v !== 'string') return '';
+  return v.replace(/[\x00-\x1F\x7F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 };
 
 // Advanced text cleaning to extract only meaningful content
@@ -101,15 +110,37 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfText, numQuestions, difficulty, topic } = await req.json();
+    // --- Authentication ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+
+    // --- Input validation ---
+    const body = await req.json().catch(() => ({}));
+    const rawPdf = typeof body.pdfText === 'string' ? body.pdfText : '';
+    if (!rawPdf || rawPdf.trim().length < 20) {
+      return json({ error: 'Document content is too short to generate meaningful questions' }, 400);
+    }
+    if (rawPdf.length > 200000) {
+      return json({ error: 'Document content is too large (max 200000 characters)' }, 413);
+    }
+    const pdfText = rawPdf;
+    const topic = sanitizeText(body.topic, 200);
+    const allowedDifficulty = ['easy', 'medium', 'hard'];
+    const difficulty = allowedDifficulty.includes(body.difficulty) ? body.difficulty : 'medium';
+    let numQuestions = Number(body.numQuestions);
+    if (!Number.isFinite(numQuestions)) numQuestions = 10;
+    numQuestions = Math.min(Math.max(Math.floor(numQuestions), 1), 30);
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
-    }
-
-    if (!pdfText || pdfText.trim().length < 20) {
-      throw new Error('Document content is too short to generate meaningful questions');
     }
 
     // Step 1: Clean the PDF text thoroughly

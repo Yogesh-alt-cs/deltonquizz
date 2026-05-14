@@ -1,8 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const sanitizeText = (v: unknown, max: number) => {
+  if (typeof v !== 'string') return '';
+  // Strip control chars, collapse whitespace, cap length
+  return v.replace(/[\x00-\x1F\x7F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 };
 
 serve(async (req) => {
@@ -11,9 +24,31 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, difficulty, numQuestions, category, course } = await req.json();
+    // --- Authentication ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+
+    // --- Input validation ---
+    const body = await req.json().catch(() => ({}));
+    const topic = sanitizeText(body.topic, 200);
+    const category = sanitizeText(body.category, 80);
+    const course = sanitizeText(body.course, 120);
+    const allowedDifficulty = ['easy', 'medium', 'hard'];
+    const difficulty = allowedDifficulty.includes(body.difficulty) ? body.difficulty : 'medium';
+    let numQuestions = Number(body.numQuestions);
+    if (!Number.isFinite(numQuestions)) numQuestions = 10;
+    numQuestions = Math.min(Math.max(Math.floor(numQuestions), 1), 30);
+
+    if (!topic) return json({ error: 'topic is required' }, 400);
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
