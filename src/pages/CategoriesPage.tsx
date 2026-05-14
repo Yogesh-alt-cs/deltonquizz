@@ -91,6 +91,18 @@ const CategoriesPage = () => {
   }, []);
 
   return (
+    <>
+      <SEO
+        title="Quiz Categories — Delton Quizz"
+        description="Browse Delton Quizz categories: science, math, history, anime, flags, biology diagrams, brand logos and more."
+        path="/categories"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Quiz Categories",
+          url: "https://deltonquizz.lovable.app/categories",
+        }}
+      />
     <div className="min-h-screen bg-background">
       <FloatingParticles />
       <Navbar />
