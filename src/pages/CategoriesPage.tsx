@@ -143,6 +143,7 @@ const CategoriesPage = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 
