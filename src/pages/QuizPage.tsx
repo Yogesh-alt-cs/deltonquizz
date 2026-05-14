@@ -887,7 +887,7 @@ const QuizPage = () => {
                 <Button variant="ghost" onClick={() => navigate(-1)}>
                   <ArrowLeft className="w-5 h-5 mr-2" />Exit
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => { setSoundEnabled(!soundEnabled); sounds.setSoundEnabled(!soundEnabled); }}>
+                <Button variant="ghost" size="icon" aria-label={soundEnabled ? "Mute sound" : "Unmute sound"} onClick={() => { setSoundEnabled(!soundEnabled); sounds.setSoundEnabled(!soundEnabled); }}>
                   {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </Button>
               </div>
