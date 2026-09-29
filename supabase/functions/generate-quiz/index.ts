@@ -53,7 +53,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const visualCategories = ['flags', 'biology-diagrams', 'anime-characters', 'brand-logos', 'geography', 'anatomy'];
+    const visualCategories = ['flags', 'biology-diagrams', 'anime-characters', 'brand-logos', 'anatomy', 'landmarks', 'animals'];
     const isVisual = visualCategories.includes(category?.toLowerCase?.() ?? '') || topic?.toLowerCase?.().includes('flag') || topic?.toLowerCase?.().includes('diagram') || topic?.toLowerCase?.().includes('anime') || topic?.toLowerCase?.().includes('logo');
 
     const imageInstructions = isVisual ? `
@@ -127,6 +127,9 @@ Only return valid JSON, no markdown or extra text.`;
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+      if (response.status === 403) {
+        return json({ error: 'AI is temporarily unavailable for this app. Please try again later.' }, 403);
       }
       throw new Error(`AI Gateway error: ${response.status}`);
     }
