@@ -64,6 +64,21 @@ const categories: Category[] = [
     color: 'hsl(45, 93%, 47%)',
     subcategories: ['UPSC', 'SSC', 'Banking', 'Railway', 'State PSC', 'Defence']
   },
+  { id: 'history', name: 'History', description: 'Ancient civilizations, world wars, and famous figures', icon: <GraduationCap className="w-6 h-6" />, color: 'hsl(30, 90%, 50%)', subcategories: ['Ancient', 'Medieval', 'Modern', 'Indian History', 'World Wars'] },
+  { id: 'geography', name: 'Geography', description: 'Countries, capitals, rivers and landmarks', icon: <Globe className="w-6 h-6" />, color: 'hsl(160, 84%, 39%)', subcategories: ['Capitals', 'Rivers', 'Mountains', 'Landmarks'] },
+  { id: 'technology', name: 'Technology', description: 'Computers, gadgets, AI and the internet', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(250, 84%, 60%)', subcategories: ['AI', 'Gadgets', 'Internet', 'Cybersecurity'] },
+  { id: 'programming', name: 'Programming', description: 'Coding concepts, languages and algorithms', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(350, 89%, 60%)', subcategories: ['JavaScript', 'Python', 'Java', 'Data Structures', 'Algorithms'] },
+  { id: 'mathematics', name: 'Mathematics', description: 'Algebra, geometry, calculus and puzzles', icon: <GraduationCap className="w-6 h-6" />, color: 'hsl(173, 80%, 40%)', subcategories: ['Algebra', 'Geometry', 'Calculus', 'Aptitude'] },
+  { id: 'sports', name: 'Sports', description: 'Cricket, football, Olympics and athletes', icon: <Globe className="w-6 h-6" />, color: 'hsl(84, 81%, 44%)', subcategories: ['Cricket', 'Football', 'Olympics', 'Tennis'] },
+  { id: 'movies-tv', name: 'Movies & TV', description: 'Hollywood, Bollywood, and TV shows', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(292, 84%, 61%)', subcategories: ['Hollywood', 'Bollywood', 'TV Series', 'Marvel & DC'] },
+  { id: 'music', name: 'Music', description: 'Artists, songs, instruments and genres', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(199, 89%, 48%)', subcategories: ['Pop', 'Rock', 'Classical', 'K-Pop'] },
+  { id: 'anime', name: 'Anime & Manga', description: 'Popular anime series and manga trivia', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(330, 81%, 60%)', subcategories: ['Naruto', 'One Piece', 'Attack on Titan', 'Demon Slayer'] },
+  { id: 'gaming', name: 'Video Games', description: 'Classic and modern games, consoles and esports', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(271, 91%, 65%)', subcategories: ['Minecraft', 'Pokémon', 'Esports', 'Retro Games'] },
+  { id: 'literature', name: 'Literature', description: 'Books, authors, poetry and classics', icon: <GraduationCap className="w-6 h-6" />, color: 'hsl(20, 80%, 50%)', subcategories: ['Classics', 'Shakespeare', 'Poetry', 'Modern Fiction'] },
+  { id: 'business', name: 'Business & Economy', description: 'Brands, finance, startups and economics', icon: <GraduationCap className="w-6 h-6" />, color: 'hsl(45, 93%, 47%)', subcategories: ['Finance', 'Startups', 'Economics', 'Marketing'] },
+  { id: 'space', name: 'Space & Astronomy', description: 'Planets, stars, galaxies and space missions', icon: <FlaskConical className="w-6 h-6" />, color: 'hsl(230, 80%, 60%)', subcategories: ['Planets', 'Stars', 'NASA & ISRO', 'Black Holes'] },
+  { id: 'food', name: 'Food & Cuisine', description: 'World dishes, ingredients and cooking', icon: <Sparkles className="w-6 h-6" />, color: 'hsl(15, 90%, 55%)', subcategories: ['Indian', 'Italian', 'Asian', 'Desserts'] },
+  { id: 'current-affairs', name: 'Current Affairs', description: 'Recent news, events and awards', icon: <Globe className="w-6 h-6" />, color: 'hsl(0, 72%, 51%)', subcategories: ['India', 'World', 'Science News', 'Awards'] },
   {
     id: 'custom',
     name: 'Custom Topic',
@@ -95,6 +110,9 @@ const visualCategories: Category[] = [
     icon: <Image className="w-6 h-6" />,
     color: 'hsl(330, 81%, 60%)',
   },
+  { id: 'brand-logos', name: 'Brand Logos', description: 'Name the brand from its logo', icon: <Image className="w-6 h-6" />, color: 'hsl(45, 93%, 47%)' },
+  { id: 'landmarks', name: 'Famous Landmarks', description: 'Identify world landmarks from photos', icon: <Eye className="w-6 h-6" />, color: 'hsl(160, 84%, 39%)' },
+  { id: 'animals', name: 'Animals', description: 'Guess the animal from its picture', icon: <Eye className="w-6 h-6" />, color: 'hsl(84, 81%, 44%)' },
 ];
 
 const difficulties = [
