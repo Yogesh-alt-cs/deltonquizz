@@ -1,6 +1,7 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { getBankQuestions } from "@/data/questionBank";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/Navbar";
@@ -167,36 +168,44 @@ const QuizPage = () => {
           : `AI is creating ${numQ} ${difficulty} questions...` 
       });
       
+      const useBank = (reason: string) => {
+        const bankQs = getBankQuestions(quizId || 'all-rounder', numQ);
+        setQuizTitle(`${topicName.split(' - ')[0]} Quiz`);
+        setQuestions(bankQs);
+        (window as any).__quizStartTime = Date.now();
+        setGameState("playing");
+        toast({ title: 'Playing from question bank', description: reason });
+      };
+
       const { data: { session: activeSession } } = await supabase.auth.getSession();
       if (!activeSession) {
-        toast({ title: 'Sign in required', description: 'Please sign in to play AI-generated quizzes.', variant: 'destructive' });
-        navigate('/auth');
+        useBank('Sign in to unlock AI-generated quizzes.');
         return;
       }
 
-      const response = await supabase.functions.invoke('generate-quiz', {
-        body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
-      });
-
-      if (response.error) {
-        let msg = response.error.message;
-        try { const b = await (response.error as any).context?.json?.(); if (b?.error) msg = b.error; } catch {}
-        throw new Error(msg);
+      try {
+        const response = await supabase.functions.invoke('generate-quiz', {
+          body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
+        });
+        if (response.error || !Array.isArray(response.data?.questions) || response.data.questions.length === 0) {
+          throw new Error('AI unavailable');
+        }
+        setQuizTitle(response.data.title || `${topicName} Quiz`);
+        const allQuestions = response.data.questions.map((q: any, i: number) => ({
+          id: `q-${i}`,
+          question_text: q.question_text,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          explanation: q.explanation,
+          points: q.points || 10,
+          image_url: q.image_url || undefined,
+        }));
+        setQuestions(allQuestions.slice(0, numQ));
+        (window as any).__quizStartTime = Date.now();
+        setGameState("playing");
+      } catch {
+        useBank('AI is busy right now, so here are curated questions instead.');
       }
-      
-      setQuizTitle(response.data.title || `${topicName} Quiz`);
-      const allQuestions = response.data.questions.map((q: any, i: number) => ({
-        id: `q-${i}`, 
-        question_text: q.question_text, 
-        options: q.options, 
-        correct_answer: q.correct_answer,
-        explanation: q.explanation, 
-        points: q.points || 10,
-        image_url: q.image_url || undefined,
-      }));
-      setQuestions(allQuestions.slice(0, numQ));
-      (window as any).__quizStartTime = Date.now();
-      setGameState("playing");
     } catch (error: any) {
       console.error('Error:', error);
       toast({ title: 'Error', description: error.message || 'Failed to load quiz', variant: 'destructive' });
