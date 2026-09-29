@@ -167,11 +167,22 @@ const QuizPage = () => {
           : `AI is creating ${numQ} ${difficulty} questions...` 
       });
       
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      if (!activeSession) {
+        toast({ title: 'Sign in required', description: 'Please sign in to play AI-generated quizzes.', variant: 'destructive' });
+        navigate('/auth');
+        return;
+      }
+
       const response = await supabase.functions.invoke('generate-quiz', {
         body: { topic: topicName, difficulty, numQuestions: numQ, category: customTopic || categoryMap[quizId] || quizId },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        let msg = response.error.message;
+        try { const b = await (response.error as any).context?.json?.(); if (b?.error) msg = b.error; } catch {}
+        throw new Error(msg);
+      }
       
       setQuizTitle(response.data.title || `${topicName} Quiz`);
       const allQuestions = response.data.questions.map((q: any, i: number) => ({
