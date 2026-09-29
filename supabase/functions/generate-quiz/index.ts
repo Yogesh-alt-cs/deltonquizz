@@ -26,14 +26,15 @@ serve(async (req) => {
   try {
     // --- Authentication ---
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Please sign in to generate quizzes.' }, 401);
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token);
+    if (authError || !claimsData?.claims?.sub) return json({ error: 'Please sign in to generate quizzes.' }, 401);
 
     // --- Input validation ---
     const body = await req.json().catch(() => ({}));
